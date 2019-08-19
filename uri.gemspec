@@ -5,8 +5,8 @@ require "uri/version"
 Gem::Specification.new do |spec|
   spec.name          = "uri"
   spec.version       = URI::VERSION
-  spec.authors       = ["Hiroshi SHIBATA"]
-  spec.email         = ["hsbt@ruby-lang.org"]
+  spec.authors       = ["Akira Yamada"]
+  spec.email         = ["akira@ruby-lang.org"]
 
   spec.summary       = %q{URI is a module providing classes to handle Uniform Resource Identifiers}
   spec.description   = spec.summary
