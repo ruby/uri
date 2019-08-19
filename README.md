@@ -1,8 +1,13 @@
-# Uri
+# URI
 
-Welcome to your new gem! In this directory, you'll find the files you need to be able to package up your Ruby library into a gem. Put your Ruby code in the file `lib/uri`. To experiment with that code, run `bin/console` for an interactive prompt.
+URI is a module providing classes to handle Uniform Resource Identifiers
+(RFC2396[http://tools.ietf.org/html/rfc2396]).
 
-TODO: Delete this and the text above, and describe your gem
+## Features
+
+* Uniform way of handling URIs.
+* Flexibility to introduce custom URI schemes.
+* Flexibility to have an alternate URI::Parser (or just different patterns and regexp's).
 
 ## Installation
 
@@ -22,7 +27,20 @@ Or install it yourself as:
 
 ## Usage
 
-TODO: Write usage instructions here
+```ruby
+require 'uri'
+
+uri = URI("http://foo.com/posts?id=30&limit=5#time=1305298413")
+#=> #<URI::HTTP http://foo.com/posts?id=30&limit=5#time=1305298413>
+
+uri.scheme    #=> "http"
+uri.host      #=> "foo.com"
+uri.path      #=> "/posts"
+uri.query     #=> "id=30&limit=5"
+uri.fragment  #=> "time=1305298413"
+
+uri.to_s      #=> "http://foo.com/posts?id=30&limit=5#time=1305298413"
+```
 
 ## Development
 
