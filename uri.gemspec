@@ -4,7 +4,7 @@ require "uri/version"
 
 Gem::Specification.new do |spec|
   spec.name          = "uri"
-  spec.version       = Uri::VERSION
+  spec.version       = URI::VERSION
   spec.authors       = ["Hiroshi SHIBATA"]
   spec.email         = ["hsbt@ruby-lang.org"]
 
