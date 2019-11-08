@@ -1,6 +1,8 @@
-lib = File.expand_path("lib", __dir__)
-$LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
-require "uri/version"
+begin
+  require_relative "lib/uri/version"
+rescue LoadError # Fallback to load version file in ruby core repository
+  require_relative "version"
+end
 
 Gem::Specification.new do |spec|
   spec.name          = "uri"
