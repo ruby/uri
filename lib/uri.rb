@@ -30,7 +30,7 @@
 #     class RSYNC < Generic
 #       DEFAULT_PORT = 873
 #     end
-#     @@schemes['RSYNC'] = RSYNC
+#     register_scheme('RSYNC', RSYNC)
 #   end
 #   #=> URI::RSYNC
 #
