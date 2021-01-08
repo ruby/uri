@@ -1,7 +1,6 @@
 # URI
 
-URI is a module providing classes to handle Uniform Resource Identifiers
-(RFC2396[http://tools.ietf.org/html/rfc2396]).
+URI is a module providing classes to handle Uniform Resource Identifiers [RFC2396](http://tools.ietf.org/html/rfc2396).
 
 ## Features
 
