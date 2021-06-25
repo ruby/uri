@@ -262,4 +262,6 @@ module URI
       return str
     end
   end
+
+  register_scheme 'FTP', FTP
 end

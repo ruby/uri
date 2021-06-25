@@ -18,4 +18,6 @@ module URI
     # A Default port of 443 for URI::HTTPS
     DEFAULT_PORT = 443
   end
+
+  register_scheme 'HTTPS', HTTPS
 end

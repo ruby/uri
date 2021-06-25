@@ -256,4 +256,6 @@ module URI
       false
     end
   end
+
+  register_scheme 'LDAP', LDAP
 end

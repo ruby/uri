@@ -64,30 +64,19 @@ module URI
 
   include REGEXP
 
-  SCHEME_LIST_MUTEX = Mutex.new
-  private_constant :SCHEME_LIST_MUTEX
+  module Schemes
+  end
+  private_constant :Schemes
 
-  # Returns a Hash of the defined schemes.
-  # The list is lazily calculated.
-  def self.scheme_list
-    return const_get(:SCHEMES) if defined?(SCHEMES)
-
-    SCHEME_LIST_MUTEX.synchronize do
-      const_set(:SCHEMES, ObjectSpace.
-        each_object(Class).
-        select { |klass| klass < URI::Generic }.
-        each_with_object({}) { |klass, acc| acc[klass.name.split('::').last.upcase] = klass }.
-        freeze)
-    end
+  def self.register_scheme(scheme, klass)
+    Schemes.const_set(scheme, klass)
   end
 
-  # Re-calculate scheme list
-  def self.refresh_scheme_list
-    SCHEME_LIST_MUTEX.synchronize do
-      remove_const(:SCHEMES) if defined?(SCHEMES)
-    end
-
-    scheme_list
+  # Returns a Hash of the defined schemes.
+  def self.scheme_list
+    Schemes.constants.map { |name|
+      [name.to_s.upcase, Schemes.const_get(name)]
+    }.to_h
   end
 
   #
@@ -95,7 +84,13 @@ module URI
   # from +URI.scheme_list+.
   #
   def self.for(scheme, *arguments, default: Generic)
-    uri_class = scheme_list[scheme.to_s.upcase] || default
+    const_name = scheme.to_s.upcase
+
+    uri_class = INITIAL_SCHEMES[const_name]
+    if !uri_class && !const_name.empty? && Schemes.const_defined?(const_name, false)
+      uri_class = Schemes.const_get(const_name, false)
+    end
+    uri_class ||= default
 
     return uri_class.new(scheme, *arguments)
   end
@@ -671,6 +666,7 @@ module URI
     "utf-16"=>"utf-16le",
     "utf-16le"=>"utf-16le",
   } # :nodoc:
+  Ractor.make_shareable(WEB_ENCODINGS_) if defined?(Ractor)
 
   # :nodoc:
   # return encoding or nil

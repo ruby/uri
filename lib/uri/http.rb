@@ -81,4 +81,6 @@ module URI
       url.start_with?(?/.freeze) ? url : ?/ + url
     end
   end
+
+  register_scheme 'HTTP', HTTP
 end

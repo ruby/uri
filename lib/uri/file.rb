@@ -89,4 +89,6 @@ module URI
     def set_password(v)
     end
   end
+
+  register_scheme 'FILE', File
 end

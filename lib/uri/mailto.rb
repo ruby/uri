@@ -288,4 +288,6 @@ module URI
     end
     alias to_rfc822text to_mailtext
   end
+
+  register_scheme 'MAILTO', MailTo
 end
