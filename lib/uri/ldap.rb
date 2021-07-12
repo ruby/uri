@@ -47,7 +47,8 @@ module URI
       SCOPE_ONE = 'one',
       SCOPE_SUB = 'sub',
       SCOPE_BASE = 'base',
-    ].freeze
+    ]
+    Ractor.make_shareable(SCOPE) if defined?(Ractor)
 
     #
     # == Description
