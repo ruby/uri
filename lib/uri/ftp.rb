@@ -39,7 +39,8 @@ module URI
     # * "i" indicates a binary file (FTP command IMAGE)
     # * "d" indicates the contents of a directory should be displayed
     #
-    TYPECODE = ['a', 'i', 'd'].freeze
+    TYPECODE = ['a', 'i', 'd']
+    Ractor.make_shareable(TYPECODE)
 
     # Typecode prefix ";type=".
     TYPECODE_PREFIX = ';type='.freeze
