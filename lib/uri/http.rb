@@ -95,8 +95,11 @@ module URI
     #     URI::HTTP.build(host: 'www.example.com', port: 80, path: '/foo/bar').authority #=> "www.example.com"
     #
     def authority
-      port_string = port == default_port ? nil : ":#{port}"
-      "#{host}#{port_string}"
+      if port == default_port
+        host
+      else
+        "#{host}:#{port}"
+      end
     end
 
     #
