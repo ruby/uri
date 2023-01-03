@@ -342,10 +342,10 @@ module URI
   #
   # Encoding:
   #
-  # - If +str+ has encoding Encoding::ASCII_8BIT, argument +enc+ is ignored.,
+  # - If +str+ has encoding Encoding::ASCII_8BIT, argument +enc+ is ignored.
   # - Otherwise +str+ is converted first to Encoding::UTF_8
   #   (with suitable character replacements),
-  #   then to encoding +enc+, and then to Encoding::ASCII_8BIT.
+  #   and then to encoding +enc+.
   #
   # In either case, the returned string has forced encoding Encoding::US_ASCII.
   #
