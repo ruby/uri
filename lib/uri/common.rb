@@ -74,6 +74,8 @@ module URI
   #   URI.register_scheme('MS_SEARCH', URI::Generic) # => URI::Generic
   #   URI.scheme_list['MS_SEARCH']                   # => URI::Generic
   #
+  # Note that currently only schemes which after .upcase are valid constant names
+  # can be registered (no -/+/. allowed).
   def self.register_scheme(scheme, klass)
     Schemes.const_set(scheme.to_s.upcase, klass)
   end
@@ -105,7 +107,7 @@ module URI
   # Returns a new object constructed from the given +scheme+, +arguments+,
   # and +default+:
   #
-  # - The new object is a instance <tt>URI.scheme_list[scheme.upcase]</tt>.
+  # - The new object is an instance of <tt>URI.scheme_list[scheme.upcase]</tt>.
   # - The object is initialized by calling the class initializer
   #   using +scheme+ and +arguments+.
   #   See URI::Generic.new.
@@ -115,8 +117,8 @@ module URI
   #   values = ['john.doe', 'www.example.com', '123', nil, '/forum/questions/', nil, 'tag=networking&order=newest', 'top']
   #   URI.for('https', *values)
   #   # => #<URI::HTTPS https://john.doe@www.example.com:123/forum/questions/?tag=networking&order=newest#top>
-  #   URI.for('foo', *values, URI::HTTP)
-  #   # => #<URI::Generic foo://john.doe@www.example.com:123/forum/questions/?tag=networking&order=newest#top>
+  #   URI.for('foo', *values, default: URI::HTTP)
+  #   # => #<URI::HTTP foo://john.doe@www.example.com:123/forum/questions/?tag=networking&order=newest#top>  #
   #
   def self.for(scheme, *arguments, default: Generic)
     const_name = scheme.to_s.upcase
