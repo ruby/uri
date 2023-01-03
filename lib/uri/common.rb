@@ -333,7 +333,7 @@ module URI
   #
   #   - Character <tt>' '</tt> to character <tt>'+'</tt>.
   #   - Any other character to "percent notation";
-  #     the percent notation for character <i>c</i> is <tt>'%%%x' % c.ord</tt>.
+  #     the percent notation for character <i>c</i> is <tt>'%%%X' % c.ord</tt>.
   #
   #   Example:
   #
@@ -342,11 +342,12 @@ module URI
   #
   # Encoding:
   #
-  # - If +str+ has encoding Encoding::ASCII_8BIT, argument +enc+ is ignored,
-  #   and the returned string has encoding Encoding::US_ASCII.
+  # - If +str+ has encoding Encoding::ASCII_8BIT, argument +enc+ is ignored.,
   # - Otherwise +str+ is converted first to Encoding::UTF_8
   #   (with suitable character replacements),
-  #   then to encoding +enc+, and returned with Encoding::ASCII_8BIT.
+  #   then to encoding +enc+, and then to Encoding::ASCII_8BIT.
+  #
+  # In either case, the returned string has forced encoding Encoding::US_ASCII.
   #
   def self.encode_www_form_component(str, enc=nil)
     _encode_uri_component(/[^*\-.0-9A-Z_a-z]/, TBLENCWWWCOMP_, str, enc)
