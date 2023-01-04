@@ -118,7 +118,7 @@ module URI
   #   URI.for('https', *values)
   #   # => #<URI::HTTPS https://john.doe@www.example.com:123/forum/questions/?tag=networking&order=newest#top>
   #   URI.for('foo', *values, default: URI::HTTP)
-  #   # => #<URI::HTTP foo://john.doe@www.example.com:123/forum/questions/?tag=networking&order=newest#top>  #
+  #   # => #<URI::HTTP foo://john.doe@www.example.com:123/forum/questions/?tag=networking&order=newest#top>
   #
   def self.for(scheme, *arguments, default: Generic)
     const_name = scheme.to_s.upcase
