@@ -74,8 +74,8 @@ module URI
   #   URI.register_scheme('MS_SEARCH', URI::Generic) # => URI::Generic
   #   URI.scheme_list['MS_SEARCH']                   # => URI::Generic
   #
-  # Note that currently only schemes which after .upcase are valid constant names
-  # can be registered (no -/+/. allowed).
+  # Note that after calling String#upcase on +scheme+, it must be a valid
+  # constant name.
   def self.register_scheme(scheme, klass)
     Schemes.const_set(scheme.to_s.upcase, klass)
   end
