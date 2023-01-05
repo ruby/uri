@@ -236,7 +236,7 @@ module URI
   #   URI.extract("text here http://foo.example.org/bla and here mailto:test@example.com and here also.")
   #   # => ["http://foo.example.com/bla", "mailto:test@example.com"]
   #
-  def self.extract(str, schemes = nil, &block)
+  def self.extract(str, schemes = nil, &block) # :nodoc:
     warn "URI.extract is obsolete", uplevel: 1 if $VERBOSE
     DEFAULT_PARSER.extract(str, schemes, &block)
   end
@@ -273,7 +273,7 @@ module URI
   #     p $&
   #   end
   #
-  def self.regexp(schemes = nil)
+  def self.regexp(schemes = nil)# :nodoc:
     warn "URI.regexp is obsolete", uplevel: 1 if $VERBOSE
     DEFAULT_PARSER.make_regexp(schemes)
   end
@@ -334,11 +334,32 @@ module URI
     _encode_uri_component(/[^*\-.0-9A-Z_a-z]/, TBLENCWWWCOMP_, str, enc)
   end
 
-  # Decodes given +str+ of URL-encoded form data.
+  # Returns a string derived from the given \URL-encoded string +str+.
+  # Before decoding, +str+ is force-encoded to +enc+.
   #
-  # This decodes + to SP.
+  # The returned string:
   #
-  # See URI.encode_www_form_component, URI.decode_www_form.
+  # - Preserves:
+  #
+  #   - Characters <tt>'*'</tt>, <tt>'.'</tt>, <tt>'-'</tt>, and <tt>'_'</tt>.
+  #   - Character in ranges <tt>'a'..'z'</tt>, <tt>'A'..'Z'</tt>,
+  #     and <tt>'0'..'9'</tt>.
+  #
+  #   Example:
+  #
+  #     URI.decode_www_form_component('*.-_azAZ09')
+  #     # => "*.-_azAZ09"
+  #
+  # - Converts:
+  #
+  #   - Character <tt>'+'</tt> to character <tt>' '</tt>.
+  #   - Each "percent notation" to an ASCII character.
+  #
+  #   Example:
+  #
+  #     URI.decode_www_form_component('Here+are+some+punctuation+characters%3A+%2C%3B%3F%3A')
+  #     # => "Here are some punctuation characters: ,;?:"
+  #
   def self.decode_www_form_component(str, enc=Encoding::UTF_8)
     _decode_uri_component(/\+|%\h\h/, str, enc)
   end
