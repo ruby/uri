@@ -185,23 +185,13 @@ module URI
     RFC3986_PARSER.parse(uri)
   end
 
+  # Recursively merges the given URI strings +str+
+  # per {RFC 2396}[https://www.rfc-editor.org/rfc/rfc2396.html].
   #
-  # == Synopsis
+  # Each string in +str+ is converted to an
+  # {RFC3986 URI}[https://www.rfc-editor.org/rfc/rfc3986.html] before being merged.
   #
-  #   URI::join(str[, str, ...])
-  #
-  # == Args
-  #
-  # +str+::
-  #   String(s) to work with, will be converted to RFC3986 URIs before merging.
-  #
-  # == Description
-  #
-  # Joins URIs.
-  #
-  # == Usage
-  #
-  #   require 'uri'
+  # Examples:
   #
   #   URI.join("http://example.com/","main.rbx")
   #   # => #<URI::HTTP http://example.com/main.rbx>
@@ -340,7 +330,6 @@ module URI
   #   and then to encoding +enc+.
   #
   # In either case, the returned string has forced encoding Encoding::US_ASCII.
-  #
   def self.encode_www_form_component(str, enc=nil)
     _encode_uri_component(/[^*\-.0-9A-Z_a-z]/, TBLENCWWWCOMP_, str, enc)
   end
