@@ -331,7 +331,7 @@ module URI
   #
   # In either case, the returned string has forced encoding Encoding::US_ASCII.
   #
-  # Related:URI.encode_uri_component (encodes <tt>' '</tt> as <tt>'%20'</tt>).
+  # Related: URI.encode_uri_component (encodes <tt>' '</tt> as <tt>'%20'</tt>).
   def self.encode_www_form_component(str, enc=nil)
     _encode_uri_component(/[^*\-.0-9A-Z_a-z]/, TBLENCWWWCOMP_, str, enc)
   end
@@ -424,7 +424,6 @@ module URI
   #
   #   URI.encode_www_form('f#o': '/', 'b-r': '$')
   #   # => "f%23o=%2F&b-r=%24"
-  #
   #
   # When +enum+ is Array-like, each element +ele+ is converted to a field:
   #
