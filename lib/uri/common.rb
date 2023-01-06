@@ -185,7 +185,7 @@ module URI
     RFC3986_PARSER.parse(uri)
   end
 
-  # Recursively merges the given URI strings +str+
+  # Merges the given URI strings +str+
   # per {RFC 2396}[https://www.rfc-editor.org/rfc/rfc2396.html].
   #
   # Each string in +str+ is converted to an
@@ -334,8 +334,10 @@ module URI
     _encode_uri_component(/[^*\-.0-9A-Z_a-z]/, TBLENCWWWCOMP_, str, enc)
   end
 
-  # Returns a string derived from the given \URL-encoded string +str+.
-  # Before decoding, +str+ is force-encoded to +enc+.
+  # Returns a string decoded from the given \URL-encoded string +str+.
+  #
+  # The given string is first encoded as Encoding::ASCII-8BIT (using String#b),
+  # then decoded (as below), and finally force-encoded to the given encoding +enc+.
   #
   # The returned string:
   #
