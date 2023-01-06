@@ -419,6 +419,13 @@ module URI
   #   URI.encode_www_form({foo: 0, bar: 1, baz: 2})
   #   # => "foo=0&bar=1&baz=2"
   #
+  # The returned string is formed using method URI.encode_www_form_component,
+  # which converts certain characters:
+  #
+  #   URI.encode_www_form('f#o': '/', 'b-r': '$')
+  #   # => "f%23o=%2F&b-r=%24"
+  #
+  #
   # When +enum+ is Array-like, each element +ele+ is converted to a field:
   #
   # - If +ele+ is an array of two or more elements,
