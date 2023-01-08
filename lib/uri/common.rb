@@ -829,11 +829,13 @@ end # module URI
 module Kernel
 
   #
-  # Returns a new \URI object derived from the given +uri+,
+  # Returns a \URI object derived from the given +uri+,
   # which may be a \URI string or an existing \URI object:
   #
+  #   # Returns a new URI.
   #   uri = URI('http://github.com/ruby/ruby')
   #   # => #<URI::HTTP http://github.com/ruby/ruby>
+  #   # Returns the given URI.
   #   URI(uri)
   #   # => #<URI::HTTP http://github.com/ruby/ruby>
   #
