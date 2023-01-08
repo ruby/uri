@@ -518,13 +518,17 @@ module URI
     end.join('&')
   end
 
-  # Returns name/value pairs derived from the given string +str+.
+  # Returns name/value pairs derived from the given string +str+,
+  # which must be an ASCII string.
   #
   # The method may be used to decode the body of Net::HTTPResponse object +res+
   # for which <tt>res['Content-Type']</tt> is <tt>'application/x-www-form-urlencoded'</tt>.
   #
   # The returned data is an array of 2-element subarrays;
   # each subarray is a name/value pair (both are strings).
+  # Each returned string has encoding +enc+,
+  # and has had invalid characters removed via
+  # {String#scrub}[https://docs.ruby-lang.org/en/master/String.html#method-i-scrub].
   #
   # A simple example:
   #
@@ -546,27 +550,6 @@ module URI
   #
   #   URI.decode_www_form('foo=0--bar=1--baz', separator: '--')
   #   # => [["foo", "0"], ["bar", "1"], ["baz", ""]]
-  #
-  # Further details:
-  #
-  # - The given +str+ is first split into the substrings returned by:
-  #
-  #     str.b.each_line(separator)
-  #
-  #   See {String#b}[https://docs.ruby-lang.org/en/master/String.html#method-i-b]
-  #   and {String#each_line}[https://docs.ruby-lang.org/en/master/String.html#method-i-each_line].
-  #
-  # - Each substring +string+ is chomped,
-  #   and split into a name/value pair by:
-  #
-  #     string.partition('=')
-  #
-  #   See {String#chomp!}[https://docs.ruby-lang.org/en/master/String.html#method-i-chomp-21]
-  #   and {String#partition}[https://docs.ruby-lang.org/en/master/String.html#method-i-partition].
-  #
-  # - Each name and value is force-encoded to encoding +enc+, then scrubbed.
-  #   See {String#force_encoding}[https://docs.ruby-lang.org/en/master/String.html#method-i-force_encoding]
-  #   and {String#scrub!}[https://docs.ruby-lang.org/en/master/String.html#method-i-scrub-21].
   #
   def self.decode_www_form(str, enc=Encoding::UTF_8, separator: '&', use__charset_: false, isindex: false)
     raise ArgumentError, "the input of #{self.name}.#{__method__} must be ASCII only string" unless str.ascii_only?
