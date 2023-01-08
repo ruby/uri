@@ -829,7 +829,13 @@ end # module URI
 module Kernel
 
   #
-  # Returns +uri+ converted to an URI object.
+  # Returns a new \URI object derived from the given +uri+,
+  # which may be a \URI string or an existing \URI object:
+  #
+  #   uri = URI('http://github.com/ruby/ruby')
+  #   # => #<URI::HTTP http://github.com/ruby/ruby>
+  #   URI(uri)
+  #   # => #<URI::HTTP http://github.com/ruby/ruby>
   #
   def URI(uri)
     if uri.is_a?(URI::Generic)
