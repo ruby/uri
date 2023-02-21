@@ -1583,5 +1583,42 @@ module URI
       }
       true
     end
+
+    # Returns an Array of the components
+    def deconstruct
+      component_ary
+    end
+
+    #
+    # == Args
+    #
+    # +array_of_names_or_nil+::
+    #    Array of names of components to be included in the result.
+    #    If nil, all components are included.
+    #
+    # == Description
+    #
+    # Returns a Hash of the components.
+    #
+    # == Usage
+    #
+    #   require 'uri'
+    #
+    #   uri = URI.parse('http://my.example.com/main.rbx?page=1')
+    #   uri.deconstruct_keys([:scheme, :host, :path])
+    #   # => { :scheme => 'http', :host => 'my.example.com', :path => '/main.rbx' }
+    #   uri.deconstruct_keys(nil)
+    #   # => { :scheme => 'http', :userinfo => nil, :host => 'my.example.com', :port => 80, :path => '/main.rbx', :query => 'page=1', :fragment => nil }
+    #
+    def deconstruct_keys(array_of_names_or_nil)
+      components = if array_of_names_or_nil.nil?
+                     component
+                   else
+                     array_of_names_or_nil & component
+                   end
+      components.each_with_object({}) do |c, h|
+        h[c] = self.__send__(c)
+      end
+    end
   end
 end
