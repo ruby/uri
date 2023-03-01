@@ -7,6 +7,14 @@ Rake::TestTask.new(:test) do |t|
   t.test_files = FileList["test/**/test_*.rb"]
 end
 
+require "rdoc/task"
+RDoc::Task.new do |doc|
+  doc.main   = "README.md"
+  doc.title  = "URI - handle Uniform Resource Identifiers"
+  doc.rdoc_files = FileList.new %w[lib LICENSE.txt]
+  doc.rdoc_dir = "_site" # for github pages
+end
+
 task :sync_tool do
   require 'fileutils'
   FileUtils.cp "../ruby/tool/lib/test/unit/core_assertions.rb", "./test/lib"
