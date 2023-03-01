@@ -11,7 +11,7 @@ require "rdoc/task"
 RDoc::Task.new do |doc|
   doc.main   = "README.md"
   doc.title  = "URI - handle Uniform Resource Identifiers"
-  doc.rdoc_files = FileList.new %w[lib LICENSE.txt]
+  doc.rdoc_files = FileList.new %w[lib README.md LICENSE.txt]
   doc.rdoc_dir = "_site" # for github pages
 end
 
