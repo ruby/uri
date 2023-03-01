@@ -1,6 +1,7 @@
 # URI
 
 [![CI](https://github.com/ruby/uri/actions/workflows/test.yml/badge.svg)](https://github.com/ruby/uri/actions/workflows/test.yml)
+[![Yard Docs](https://img.shields.io/badge/docs-exist-blue.svg)](https://ruby.github.io/uri/)
 
 URI is a module providing classes to handle Uniform Resource Identifiers [RFC2396](http://tools.ietf.org/html/rfc2396).
 
