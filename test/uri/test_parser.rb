@@ -65,4 +65,16 @@ class URI::TestParser < Test::Unit::TestCase
     assert_equal([nil, nil, "example.com", nil, nil, "", nil, nil, nil], URI.split("//example.com"))
     assert_equal([nil, nil, "[0::0]", nil, nil, "", nil, nil, nil], URI.split("//[0::0]"))
   end
+
+  def test_rfc2822_parse_relative_uri
+    pre = ->(length) {
+      " " * length + "\0"
+    }
+    parser = URI::RFC2396_Parser.new
+    assert_linear_performance((1..5).map {|i| 10**i}, pre: pre) do |uri|
+      assert_raise(URI::InvalidURIError) do
+        parser.split(uri)
+      end
+    end
+  end
 end
