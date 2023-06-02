@@ -738,35 +738,56 @@ eom
       end
       alias all_assertions_foreach assert_all_assertions_foreach
 
+      %w[
+        CLOCK_THREAD_CPUTIME_ID CLOCK_PROCESS_CPUTIME_ID
+        CLOCK_MONOTONIC
+      ].find do |clk|
+        if Process.const_defined?(clk)
+          [clk.to_sym, Process.const_get(clk)].find do |clk|
+            Process.clock_gettime(clk)
+          rescue
+            # Constants may be defined but not implemented, e.g., mingw.
+          else
+            PERFORMANCE_CLOCK = clk
+          end
+        end
+      end
+
       # Expect +seq+ to respond to +first+ and +each+ methods, e.g.,
       # Array, Range, Enumerator::ArithmeticSequence and other
       # Enumerable-s, and each elements should be size factors.
       #
       # :yield: each elements of +seq+.
       def assert_linear_performance(seq, rehearsal: nil, pre: ->(n) {n})
+        pend "No PERFORMANCE_CLOCK found" unless defined?(PERFORMANCE_CLOCK)
+
+        # Timeout testing generally doesn't work when RJIT compilation happens.
+        rjit_enabled = defined?(RubyVM::RJIT) && RubyVM::RJIT.enabled?
+        measure = proc do |arg, message|
+          st = Process.clock_gettime(PERFORMANCE_CLOCK)
+          yield(*arg)
+          t = (Process.clock_gettime(PERFORMANCE_CLOCK) - st)
+          assert_operator 0, :<=, t, message unless rjit_enabled
+          t
+        end
+
         first = seq.first
         *arg = pre.call(first)
         times = (0..(rehearsal || (2 * first))).map do
-          st = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-          yield(*arg)
-          t = (Process.clock_gettime(Process::CLOCK_MONOTONIC) - st)
-          assert_operator 0, :<=, t
-          t.nonzero?
+          measure[arg, "rehearsal"].nonzero?
         end
         times.compact!
         tmin, tmax = times.minmax
-        tmax *= tmax / tmin
-        tmax = 10**Math.log10(tmax).ceil
+        tbase = 10 ** Math.log10(tmax * ([(tmax / tmin), 2].max ** 2)).ceil
+        info = "(tmin: #{tmin}, tmax: #{tmax}, tbase: #{tbase})"
 
         seq.each do |i|
           next if i == first
-          t = tmax * i.fdiv(first)
+          t = tbase * i.fdiv(first)
           *arg = pre.call(i)
-          message = "[#{i}]: in #{t}s"
+          message = "[#{i}]: in #{t}s #{info}"
           Timeout.timeout(t, Timeout::Error, message) do
-            st = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-            yield(*arg)
-            assert_operator (Process.clock_gettime(Process::CLOCK_MONOTONIC) - st), :<=, t, message
+            measure[arg, message]
           end
         end
       end
