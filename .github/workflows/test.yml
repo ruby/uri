@@ -6,7 +6,7 @@ jobs:
   ruby-versions:
     uses: ruby/actions/.github/workflows/ruby_versions.yml@master
     with:
-      min_version: 2.4
+      min_version: 2.5
 
   build:
     needs: ruby-versions
