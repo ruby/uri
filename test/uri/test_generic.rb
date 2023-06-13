@@ -977,6 +977,18 @@ class URI::TestGeneric < Test::Unit::TestCase
     end
   end
 
+  def test_deconstruct
+    u = URI.parse('http://example.com/path')
+    assert_equal uri_to_ary(u), u.deconstruct
+  end
+
+  def test_deconstruct_keys
+    u = URI.parse('http://example.com/path')
+    assert_equal({ host: 'example.com', port: 80 }, u.deconstruct_keys(%i[host port]))
+    assert_equal({ scheme: 'http', host: 'example.com', port: 80, path: '/path',
+                   query: nil, fragment: nil, userinfo: nil }, u.deconstruct_keys(nil))
+  end
+
   class CaseInsensitiveEnv
     def initialize(h={})
       @h = {}
