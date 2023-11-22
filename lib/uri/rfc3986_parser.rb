@@ -78,10 +78,10 @@ module URI
       begin
         uri = uri.to_str
       rescue NoMethodError
-        raise InvalidURIError, "bad URI(is not URI?): #{uri.inspect}"
+        raise InvalidURIError, "bad URI(is not URI?)"
       end
       uri.ascii_only? or
-        raise InvalidURIError, "URI must be ascii only #{uri.dump}"
+        raise InvalidURIError, "URI must be ascii only"
       if m = RFC3986_URI.match(uri)
         query = m["query"]
         scheme = m["scheme"]
@@ -127,7 +127,7 @@ module URI
           m["fragment"]
         ]
       else
-        raise InvalidURIError, "bad URI(is not URI?): #{uri.inspect}"
+        raise InvalidURIError, "bad URI(is not URI?)"
       end
     end
 
