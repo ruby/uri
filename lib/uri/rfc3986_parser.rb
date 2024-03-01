@@ -141,14 +141,13 @@ module URI
       uris.inject :merge
     end
 
-    @@to_s = Kernel.instance_method(:to_s)
-    if @@to_s.respond_to?(:bind_call)
+    if UnboundMethod.method_defined?(:bind_call)
       def inspect
-        @@to_s.bind_call(self)
+        Kernel.instance_method(:to_s).bind_call(self)
       end
     else
       def inspect
-        @@to_s.bind(self).call
+        Kernel.instance_method(:to_s).bind(self).call
       end
     end
 

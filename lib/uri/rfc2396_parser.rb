@@ -25,31 +25,31 @@ module URI
       # RFC 2373 (IPv6 Addressing Architecture)
 
       # alpha         = lowalpha | upalpha
-      ALPHA = "a-zA-Z"
+      ALPHA = "a-zA-Z".freeze
       # alphanum      = alpha | digit
-      ALNUM = "#{ALPHA}\\d"
+      ALNUM = "#{ALPHA}\\d".freeze
 
       # hex           = digit | "A" | "B" | "C" | "D" | "E" | "F" |
       #                         "a" | "b" | "c" | "d" | "e" | "f"
-      HEX     = "a-fA-F\\d"
+      HEX     = "a-fA-F\\d".freeze
       # escaped       = "%" hex hex
-      ESCAPED = "%[#{HEX}]{2}"
+      ESCAPED = "%[#{HEX}]{2}".freeze
       # mark          = "-" | "_" | "." | "!" | "~" | "*" | "'" |
       #                 "(" | ")"
       # unreserved    = alphanum | mark
-      UNRESERVED = "\\-_.!~*'()#{ALNUM}"
+      UNRESERVED = "\\-_.!~*'()#{ALNUM}".freeze
       # reserved      = ";" | "/" | "?" | ":" | "@" | "&" | "=" | "+" |
       #                 "$" | ","
       # reserved      = ";" | "/" | "?" | ":" | "@" | "&" | "=" | "+" |
       #                 "$" | "," | "[" | "]" (RFC 2732)
-      RESERVED = ";/?:@&=+$,\\[\\]"
+      RESERVED = ";/?:@&=+$,\\[\\]".freeze
 
       # domainlabel   = alphanum | alphanum *( alphanum | "-" ) alphanum
-      DOMLABEL = "(?:[#{ALNUM}](?:[-#{ALNUM}]*[#{ALNUM}])?)"
+      DOMLABEL = "(?:[#{ALNUM}](?:[-#{ALNUM}]*[#{ALNUM}])?)".freeze
       # toplabel      = alpha | alpha *( alphanum | "-" ) alphanum
-      TOPLABEL = "(?:[#{ALPHA}](?:[-#{ALNUM}]*[#{ALNUM}])?)"
+      TOPLABEL = "(?:[#{ALPHA}](?:[-#{ALNUM}]*[#{ALNUM}])?)".freeze
       # hostname      = *( domainlabel "." ) toplabel [ "." ]
-      HOSTNAME = "(?:#{DOMLABEL}\\.)*#{TOPLABEL}\\.?"
+      HOSTNAME = "(?:#{DOMLABEL}\\.)*#{TOPLABEL}\\.?".freeze
 
       # :startdoc:
     end # PATTERN
@@ -321,14 +321,13 @@ module URI
       str.gsub(escaped) { [$&[1, 2]].pack('H2').force_encoding(enc) }
     end
 
-    @@to_s = Kernel.instance_method(:to_s)
-    if @@to_s.respond_to?(:bind_call)
+    if UnboundMethod.method_defined?(:bind_call)
       def inspect
-        @@to_s.bind_call(self)
+        Kernel.instance_method(:to_s).bind_call(self)
       end
     else
       def inspect
-        @@to_s.bind(self).call
+        Kernel.instance_method(:to_s).bind(self).call
       end
     end
 
