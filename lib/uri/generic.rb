@@ -205,7 +205,7 @@ module URI
       end
       if registry
         raise InvalidURIError,
-          "the scheme #{@scheme} does not accept registry part: #{registry} (or bad hostname?)"
+          "the scheme #{@scheme} does not accept registry part (or bad hostname?)"
       end
 
       @scheme&.freeze
