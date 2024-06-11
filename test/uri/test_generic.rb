@@ -841,6 +841,10 @@ class URI::TestGeneric < Test::Unit::TestCase
     assert_equal(":5432", u.to_s)
     assert_equal(5432, u.port)
 
+    u = URI::Generic.build(:host => "underscore_host.test")
+    assert_equal("//underscore_host.test", u.to_s)
+    assert_equal("underscore_host.test", u.host)
+
     u = URI::Generic.build(:scheme => "http", :host => "::1", :path => "/bar/baz")
     assert_equal("http://[::1]/bar/baz", u.to_s)
     assert_equal("[::1]", u.host)
