@@ -10,7 +10,6 @@
 
 require_relative 'common'
 autoload :IPSocket, 'socket'
-autoload :IPAddr, 'ipaddr'
 
 module URI
 
@@ -1564,15 +1563,26 @@ module URI
             return false if dothostname.end_with?(".#{p_host.downcase}")
           end
           if addr
-            begin
-              return false if IPAddr.new(p_host).include?(addr)
-            rescue IPAddr::InvalidAddressError
-              next
-            end
+            return false if addr == p_host || in_ip_range?(addr, p_host)
           end
         end
       }
       true
+    end
+
+    private
+
+    def self.ip_to_i(ip)
+      ip.split('.').map(&:to_i).pack('C*').unpack1('N')
+    end
+
+    def self.in_ip_range?(ip, range)
+      return false unless range.include?('/')
+
+      base, bits = range.split('/')
+      bits = bits.to_i
+      mask = (0xFFFFFFFF << (32 - bits)) & 0xFFFFFFFF
+      (ip_to_i(ip) & mask) == (ip_to_i(base) & mask)
     end
   end
 end
