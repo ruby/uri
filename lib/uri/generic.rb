@@ -1572,17 +1572,45 @@ module URI
 
     private
 
-    def self.ip_to_i(ip)
-      ip.split('.').map(&:to_i).pack('C*').unpack1('N')
+    def self.expand_ipv6(ip)
+      if ip.include?('::')
+        parts = ip.split('::')
+        left = parts[0].split(':')
+        right = parts[1] ? parts[1].split(':') : []
+        middle = ['0'] * (8 - left.size - right.size)
+        (left + middle + right).join(':')
+      else
+        ip
+      end
     end
-
+    
+    def self.ip_to_i(ip)
+      if ip.include?(':')
+        expanded_ip = expand_ipv6(ip)
+        segments = expanded_ip.split(':').map { |seg| seg.rjust(4, '0') }
+        hex_ip = segments.join
+        hex_ip.to_i(16)
+      else
+        ip.split('.').map(&:to_i).pack('C*').unpack1('N')
+      end
+    end
+    
     def self.in_ip_range?(ip, range)
       return false unless range.include?('/')
-
+    
       base, bits = range.split('/')
       bits = bits.to_i
-      mask = (0xFFFFFFFF << (32 - bits)) & 0xFFFFFFFF
-      (ip_to_i(ip) & mask) == (ip_to_i(base) & mask)
+    
+      if base.include?(':')
+        # IPv6
+        expanded_base = expand_ipv6(base)
+        mask = (1 << 128) - (1 << (128 - bits))
+        (ip_to_i(ip) & mask) == (ip_to_i(expanded_base) & mask)
+      else
+        # IPv4
+        mask = (0xFFFFFFFF << (32 - bits)) & 0xFFFFFFFF
+        (ip_to_i(ip) & mask) == (ip_to_i(base) & mask)
+      end
     end
   end
 end
