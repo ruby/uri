@@ -49,6 +49,8 @@ module URI
     if RFC2396_PARSER.regexp[const]
       warn "URI::#{const} is obsolete. Use RFC2396_PARSER.regexp[#{const.inspect}] explicitly.", uplevel: 1 if $VERBOSE
       RFC2396_PARSER.regexp[const]
+    else
+      raise NameError, "uninitialized constant URI::#{const}"
     end
   end
 

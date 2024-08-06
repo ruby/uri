@@ -14,6 +14,7 @@ class URI::TestCommon < Test::Unit::TestCase
     orig_verbose = $VERBOSE
     $VERBOSE = nil
     assert URI::ABS_URI
+    assert_raise(NameError) { URI::FOO }
     $VERBOSE = orig_verbose
   end
 
