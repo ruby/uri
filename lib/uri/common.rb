@@ -46,9 +46,9 @@ module URI
   self.parser = RFC3986_PARSER
 
   def self.const_missing(const)
-    if RFC2396_PARSER.regexp[const]
+    if value = RFC2396_PARSER.regexp[const]
       warn "URI::#{const} is obsolete. Use RFC2396_PARSER.regexp[#{const.inspect}] explicitly.", uplevel: 1 if $VERBOSE
-      RFC2396_PARSER.regexp[const]
+      value
     else
       super
     end
