@@ -152,7 +152,7 @@ class URI::TestCommon < Test::Unit::TestCase
 
   def test_encode_www_form_component
     assert_equal("%00+%21%22%23%24%25%26%27%28%29*%2B%2C-.%2F09%3A%3B%3C%3D%3E%3F%40" \
-                 "AZ%5B%5C%5D%5E_%60az%7B%7C%7D%7E",
+                 "AZ%5B%5C%5D%5E_%60az%7B%7C%7D~",
                  URI.encode_www_form_component("\x00 !\"\#$%&'()*+,-./09:;<=>?@AZ[\\]^_`az{|}~"))
     assert_equal("%95A", URI.encode_www_form_component(
                    "\x95\x41".force_encoding(Encoding::Shift_JIS)))
@@ -204,7 +204,7 @@ class URI::TestCommon < Test::Unit::TestCase
 
   def test_encode_uri_component
     assert_equal("%00%20%21%22%23%24%25%26%27%28%29*%2B%2C-.%2F09%3A%3B%3C%3D%3E%3F%40" \
-                 "AZ%5B%5C%5D%5E_%60az%7B%7C%7D%7E",
+                 "AZ%5B%5C%5D%5E_%60az%7B%7C%7D~",
                  URI.encode_uri_component("\x00 !\"\#$%&'()*+,-./09:;<=>?@AZ[\\]^_`az{|}~"))
     assert_equal("%95A", URI.encode_uri_component(
                    "\x95\x41".force_encoding(Encoding::Shift_JIS)))
@@ -286,6 +286,8 @@ class URI::TestCommon < Test::Unit::TestCase
     assert_equal("q=ruby&lang=en", URI.encode_www_form("q" => "ruby", "lang" => "en"))
     assert_equal("q=ruby&q=perl&lang=en", URI.encode_www_form("q" => ["ruby", "perl"], "lang" => "en"))
     assert_equal("q=ruby&q=perl&lang=en", URI.encode_www_form([["q", "ruby"], ["q", "perl"], ["lang", "en"]]))
+
+    assert_equal("special_chars=*.-_~", URI.encode_www_form("special_chars" => "*.-_~"))
   end
 
   def test_decode_www_form

@@ -324,14 +324,14 @@ module URI
   #
   # - Preserves:
   #
-  #   - Characters <tt>'*'</tt>, <tt>'.'</tt>, <tt>'-'</tt>, and <tt>'_'</tt>.
+  #   - Characters <tt>'*'</tt>, <tt>'.'</tt>, <tt>'-'</tt>, <tt>'_'</tt>, and <tt>'~'</tt>.
   #   - Character in ranges <tt>'a'..'z'</tt>, <tt>'A'..'Z'</tt>,
   #     and <tt>'0'..'9'</tt>.
   #
   #   Example:
   #
-  #     URI.encode_www_form_component('*.-_azAZ09')
-  #     # => "*.-_azAZ09"
+  #     URI.encode_www_form_component('*.-_~azAZ09')
+  #     # => "*.-_~azAZ09"
   #
   # - Converts:
   #
@@ -355,7 +355,7 @@ module URI
   #
   # Related: URI.encode_uri_component (encodes <tt>' '</tt> as <tt>'%20'</tt>).
   def self.encode_www_form_component(str, enc=nil)
-    _encode_uri_component(/[^*\-.0-9A-Z_a-z]/, TBLENCWWWCOMP_, str, enc)
+    _encode_uri_component(/[^*\-.~0-9A-Z_a-z]/, TBLENCWWWCOMP_, str, enc)
   end
 
   # Returns a string decoded from the given \URL-encoded string +str+.
@@ -394,7 +394,7 @@ module URI
   # Like URI.encode_www_form_component, except that <tt>' '</tt> (space)
   # is encoded as <tt>'%20'</tt> (instead of <tt>'+'</tt>).
   def self.encode_uri_component(str, enc=nil)
-    _encode_uri_component(/[^*\-.0-9A-Z_a-z]/, TBLENCURICOMP_, str, enc)
+    _encode_uri_component(/[^*\-.~0-9A-Z_a-z]/, TBLENCURICOMP_, str, enc)
   end
 
   # Like URI.decode_www_form_component, except that <tt>'+'</tt> is preserved.
