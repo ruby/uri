@@ -52,9 +52,9 @@ module URI
     elsif value = RFC2396_PARSER.regexp[const]
       warn "URI::#{const} is obsolete. Use RFC2396_PARSER.regexp[#{const.inspect}] explicitly.", uplevel: 1 if $VERBOSE
       value
-    elsif value = RFC2396_Parser.const_get(const)
+    elsif RFC2396_Parser.const_defined?(const)
       warn "URI::#{const} is obsolete. Use RFC2396_Parser::#{const} explicitly.", uplevel: 1 if $VERBOSE
-      value
+      RFC2396_Parser.const_get(const)
     else
       super
     end

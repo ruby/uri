@@ -14,7 +14,8 @@ class URI::TestCommon < Test::Unit::TestCase
     orig_verbose = $VERBOSE
     $VERBOSE = nil
 
-    assert_raise(NameError) { URI::FOO }
+    e = assert_raise(NameError) { URI::FOO }
+    assert_equal(e.message, "uninitialized constant URI::FOO")
 
     assert_equal URI::ABS_URI, URI::RFC2396_PARSER.regexp[:ABS_URI]
     assert_equal URI::PATTERN, URI::RFC2396_Parser::PATTERN
