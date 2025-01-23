@@ -74,14 +74,18 @@ module URI
       @regexp = default_regexp.each_value(&:freeze).freeze
     end
 
-    def split(uri) #:nodoc:
+    def split(uri, exception: true) #:nodoc:
       begin
         uri = uri.to_str
       rescue NoMethodError
+        return unless exception
         raise InvalidURIError, "bad URI (is not URI?): #{uri.inspect}"
       end
-      uri.ascii_only? or
+      unless uri.ascii_only?
+        return unless exception
+
         raise InvalidURIError, "URI must be ascii only #{uri.dump}"
+      end
       if m = RFC3986_URI.match(uri)
         query = m["query"]
         scheme = m["scheme"]
@@ -127,12 +131,17 @@ module URI
           m["fragment"]
         ]
       else
+        return unless exception
+
         raise InvalidURIError, "bad URI (is not URI?): #{uri.inspect}"
       end
     end
 
-    def parse(uri) # :nodoc:
-      URI.for(*self.split(uri), self)
+    def parse(uri, exception: true) # :nodoc:
+      scheme = self.split(uri, exception: exception)
+      return if scheme.nil?
+
+      URI.for(*scheme, self)
     end
 
     def join(*uris) # :nodoc:
