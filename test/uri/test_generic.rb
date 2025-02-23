@@ -1078,4 +1078,8 @@ class URI::TestGeneric < Test::Unit::TestCase
     yield h
   end
 
+  def test_base_url
+    url = URI.parse('http://test.example.com/one/two/base_url?param1=value')
+    assert_equal 'http://test.example.com', url.base_url
+  end
 end

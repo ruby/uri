@@ -1576,5 +1576,13 @@ module URI
       }
       true
     end
+
+    # Returns the base url of the URI.
+    #
+    #   URI("http://foo.com/one/two?param1=value1").base_url #=> "http://foo.com"
+    #
+    def base_url
+      "#{scheme}://#{hostname}"
+    end
   end
 end
