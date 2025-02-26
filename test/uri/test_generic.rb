@@ -157,6 +157,17 @@ class URI::TestGeneric < Test::Unit::TestCase
     assert_equal(nil, url.user)
     assert_equal(nil, url.password)
     assert_equal(nil, url.userinfo)
+
+    # sec-2957667
+    url = URI.parse('http://user:pass@example.com').merge('//example.net')
+    assert_equal('http://example.net', url.to_s)
+    assert_nil(url.userinfo)
+    url = URI.join('http://user:pass@example.com', '//example.net')
+    assert_equal('http://example.net', url.to_s)
+    assert_nil(url.userinfo)
+    url = URI.parse('http://user:pass@example.com') + '//example.net'
+    assert_equal('http://example.net', url.to_s)
+    assert_nil(url.userinfo)
   end
 
   def test_parse_scheme_with_symbols
