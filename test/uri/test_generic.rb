@@ -157,6 +157,17 @@ class URI::TestGeneric < Test::Unit::TestCase
     assert_equal(nil, url.user)
     assert_equal(nil, url.password)
     assert_equal(nil, url.userinfo)
+
+    # sec-2957667
+    url = URI.parse('http://user:pass@example.com').merge('//example.net')
+    assert_equal('http://example.net', url.to_s)
+    assert_nil(url.userinfo)
+    url = URI.join('http://user:pass@example.com', '//example.net')
+    assert_equal('http://example.net', url.to_s)
+    assert_nil(url.userinfo)
+    url = URI.parse('http://user:pass@example.com') + '//example.net'
+    assert_equal('http://example.net', url.to_s)
+    assert_nil(url.userinfo)
   end
 
   def test_parse_scheme_with_symbols
@@ -246,6 +257,13 @@ class URI::TestGeneric < Test::Unit::TestCase
     u = URI.parse('http://www.example.com/')
     u0 = u + './'
     u1 = u + './foo/bar/../..'
+    assert_equal(u0, u1)
+  end
+
+  def test_merge_authority
+    u = URI.parse('http://user:pass@example.com:8080')
+    u0 = URI.parse('http://new.example.org/path')
+    u1 = u.merge('//new.example.org/path')
     assert_equal(u0, u1)
   end
 
