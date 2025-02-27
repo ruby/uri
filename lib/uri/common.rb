@@ -92,6 +92,40 @@ module URI
   end
 
   module Schemes # :nodoc:
+    class << self
+      ReservedChars = ".+-"
+      EscapedChars = "\u01C0\u01C1\u01C2"
+      # Use Lo category chars as escaped chars for TruffleRuby, which
+      # does not allow Symbol categories as identifiers.
+
+      def escape(name)
+        unless name and name.ascii_only?
+          return nil
+        end
+        name.upcase.tr(ReservedChars, EscapedChars)
+      end
+
+      def unescape(name)
+        name.tr(EscapedChars, ReservedChars).encode(Encoding::US_ASCII).upcase
+      end
+
+      def find(name)
+        const_get(name, false) if name and const_defined?(name, false)
+      end
+
+      def register(name, klass)
+        unless scheme = escape(name)
+          raise ArgumentError, "invalid character as scheme - #{name}"
+        end
+        const_set(scheme, klass)
+      end
+
+      def list
+        constants.map { |name|
+          [unescape(name.to_s), const_get(name)]
+        }.to_h
+      end
+    end
   end
   private_constant :Schemes
 
@@ -104,7 +138,7 @@ module URI
   # Note that after calling String#upcase on +scheme+, it must be a valid
   # constant name.
   def self.register_scheme(scheme, klass)
-    Schemes.const_set(scheme.to_s.upcase, klass)
+    Schemes.register(scheme, klass)
   end
 
   # Returns a hash of the defined schemes:
@@ -122,9 +156,7 @@ module URI
   #
   # Related: URI.register_scheme.
   def self.scheme_list
-    Schemes.constants.map { |name|
-      [name.to_s.upcase, Schemes.const_get(name)]
-    }.to_h
+    Schemes.list
   end
 
   INITIAL_SCHEMES = scheme_list
@@ -148,12 +180,10 @@ module URI
   #   # => #<URI::HTTP foo://john.doe@www.example.com:123/forum/questions/?tag=networking&order=newest#top>
   #
   def self.for(scheme, *arguments, default: Generic)
-    const_name = scheme.to_s.upcase
+    const_name = Schemes.escape(scheme)
 
     uri_class = INITIAL_SCHEMES[const_name]
-    uri_class ||= if /\A[A-Z]\w*\z/.match?(const_name) && Schemes.const_defined?(const_name, false)
-      Schemes.const_get(const_name, false)
-    end
+    uri_class ||= Schemes.find(const_name)
     uri_class ||= default
 
     return uri_class.new(scheme, *arguments)
