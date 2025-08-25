@@ -92,6 +92,17 @@ class URI::TestParser < Test::Unit::TestCase
     end
   end
 
+  def test_split_without_exception
+    assert_equal(["http", nil, "example.com", nil, nil, "", nil, nil, nil], URI.split("http://example.com"))
+    assert_equal(["http", nil, "[0::0]", nil, nil, "", nil, nil, nil], URI.split("http://[0::0]"))
+    assert_equal([nil, nil, "example.com", nil, nil, "", nil, nil, nil], URI.split("//example.com"))
+    assert_equal([nil, nil, "[0::0]", nil, nil, "", nil, nil, nil], URI.split("//[0::0]"))
+
+    assert_equal(["a", nil, nil, nil, nil, "", nil, nil, nil], URI.split("a:"))
+    assert_nil  URI.parse("::", exception: false)
+    assert_nil URI.parse("foo@example:foo", exception: false)
+  end
+
   def test_rfc2822_parse_relative_uri
     pre = ->(length) {
       " " * length + "\0"
