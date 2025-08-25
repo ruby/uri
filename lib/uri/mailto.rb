@@ -176,7 +176,7 @@ module URI
 
       v.split(/[,;]/).each do |addr|
         # check url safety as path-rootless
-        if /\A(?:%\h\h|[!$&-.0-;=@-Z_a-z~])*\z/ !~ addr
+        if /\A(?:%\h\h|[!$&-.0-9:;=@-Z_a-z~])*\z/ !~ addr
           raise InvalidComponentError,
             "an address in 'to' is invalid as URI #{addr.dump}"
         end
