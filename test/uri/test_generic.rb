@@ -288,6 +288,26 @@ class URI::TestGeneric < Test::Unit::TestCase
     assert_equal(u0, u1)
   end
 
+  def test_merge_allow_relative
+    # When both URIs are relative, merge should raise unless allow_relative is true:
+    base = URI.parse('a/b/c')
+    assert_raise(URI::BadURIError) do
+      base.merge('d/e')
+    end
+
+    # With allow_relative=true, relative base + relative ref should merge paths:
+    merged = base.merge('d/e', true)
+    assert_equal('a/b/d/e', merged.to_s)
+
+    # Parent directory traversals should be handled as with absolute bases:
+    merged_up = base.merge('../x', true)
+    assert_equal('a/x', merged_up.to_s)
+
+    # Leading slash should reset to root-like behavior within relative context:
+    merged_abs = base.merge('/z', true)
+    assert_equal('/z', merged_abs.to_s)
+  end
+
   def test_route
     url = URI.parse('http://hoge/a.html').route_to('http://hoge/b.html')
     assert_equal('b.html', url.to_s)
