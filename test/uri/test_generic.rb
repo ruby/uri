@@ -965,6 +965,9 @@ class URI::TestGeneric < Test::Unit::TestCase
       assert_equal(URI('http://127.0.0.1:8080'), URI("http://example.org/").find_proxy(env))
       assert_nil(URI("http://www.example.org/").find_proxy(env))
     }
+    with_proxy_env('http_proxy'=>'http://127.0.0.1:8080', 'no_proxy'=>'*') {|env|
+      assert_nil(URI("http://www.example.org/").find_proxy(env))
+    }
   ensure
     IPSocket.singleton_class.class_eval do
       undef getaddress
@@ -1008,8 +1011,10 @@ class URI::TestGeneric < Test::Unit::TestCase
       ['example.com', nil, 80, '', true],
       ['example.com', nil, 80, 'example.com:80', false],
       ['example.com', nil, 80, 'example.org,example.com:80,example.net', false],
+      ['example.com', nil, 80, 'example.org,*', false],
       ['foo.example.com', nil, 80, 'example.com', false],
       ['foo.example.com', nil, 80, '.example.com', false],
+      ['foo.example.com', nil, 80, '*.example.com', true],
       ['example.com', nil, 80, '.example.com', true],
       ['xample.com', nil, 80, '.example.com', true],
       ['fooexample.com', nil, 80, '.example.com', true],
@@ -1020,6 +1025,7 @@ class URI::TestGeneric < Test::Unit::TestCase
       ['127.0.0.1', '127.0.0.1', 80, '10.224.0.0/22', true],
       ['10.224.1.1', '10.224.1.1', 80, '10.224.1.1', false],
       ['10.224.1.1', '10.224.1.1', 80, '10.224.0.0/22', false],
+      ['10.224.1.1', '10.224.1.1', 80, '*', false],
     ].each do |hostname, addr, port, no_proxy, expected|
       assert_equal expected, URI::Generic.use_proxy?(hostname, addr, port, no_proxy),
         "use_proxy?('#{hostname}', '#{addr}', #{port}, '#{no_proxy}')"
