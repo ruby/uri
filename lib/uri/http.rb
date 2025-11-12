@@ -127,9 +127,14 @@ module URI
     #     URI::HTTP.build(host: 'www.example.com', port: 8000, path: '/foo/bar').origin #=> "http://www.example.com:8000"
     #     URI::HTTP.build(host: 'www.example.com', port: 80, path: '/foo/bar').origin #=> "http://www.example.com"
     #     URI::HTTPS.build(host: 'www.example.com', path: '/foo/bar').origin #=> "https://www.example.com"
+    #     URI::HTTPS.build(host: 'www.example.com', userinfo: 'user:password').origin #=> "https://www.example.com"
     #
     def origin
-      "#{scheme}://#{authority}"
+      str = "#{scheme}://#{host}"
+      if port != default_port
+        str << ":#{port}"
+      end
+      str
     end
   end
 
