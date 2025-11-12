@@ -576,7 +576,7 @@ module URI
 
     # Returns the authority info (array of user, password, host and
     # port), if any is set.  Or returns +nil+.
-    def authority
+    def authority_components
       return @user, @password, @host, @port if @user || @password || @host || @port
     end
 
@@ -624,7 +624,7 @@ module URI
     # Protected setter for the authority info (+user+, +password+, +host+
     # and +port+).  If +port+ is +nil+, +default_port+ will be set.
     #
-    protected def set_authority(user, password, host, port = nil)
+    protected def set_authority_components(user, password, host, port = nil)
       @user, @password, @host, @port = user, password, host, port || self.default_port
     end
 
@@ -1136,7 +1136,7 @@ module URI
 
       base = self.dup
 
-      authority = rel.authority
+      authority = rel.authority_components
 
       # RFC2396, Section 5.2, 2)
       if (rel.path.nil? || rel.path.empty?) && !authority && !rel.query
@@ -1149,7 +1149,7 @@ module URI
 
       # RFC2396, Section 5.2, 4)
       if authority
-        base.set_authority(*authority)
+        base.set_authority_components(*authority)
         base.set_path(rel.path)
       elsif base.path && rel.path
         base.set_path(merge_path(base.path, rel.path))
