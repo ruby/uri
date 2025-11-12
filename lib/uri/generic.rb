@@ -747,6 +747,45 @@ module URI
       port
     end
 
+    #
+    # == Description
+    #
+    # Returns the authority of the URI, as defined in
+    # https://www.rfc-editor.org/rfc/rfc3986#section-3.2.
+    #
+    #   authority = [ userinfo "@" ] host [ ":" port ]
+    #
+    # Returns an empty string if no authority is present.
+    #
+    # == Usage
+    #
+    #   require 'uri'
+    #
+    #   URI::HTTP.build(host: 'www.example.com', path: '/foo/bar').authority
+    #   #=> "www.example.com"
+    #   URI::HTTP.build(host: 'www.example.com', port: 8000, path: '/foo/bar').authority
+    #   #=> "www.example.com:8000"
+    #   URI::HTTP.build(host: 'www.example.com', port: 80, path: '/foo/bar').authority
+    #   #=> "www.example.com"
+    #   URI::HTTP.build(host: 'www.example.com', userinfo: 'user:password').authority
+    #   #=> "user:password@www.example.com"
+    #
+    def authority
+      str = ''.dup
+      if self.userinfo
+        str << self.userinfo
+        str << '@'
+      end
+      if @host
+        str << @host
+      end
+      if @port && @port != self.default_port
+        str << ':'
+        str << @port.to_s
+      end
+      str
+    end
+
     def check_registry(v) # :nodoc:
       raise InvalidURIError, "cannot set registry"
     end
@@ -1365,17 +1404,7 @@ module URI
         if @host || %w[file postgres].include?(@scheme)
           str << '//'
         end
-        if self.userinfo
-          str << self.userinfo
-          str << '@'
-        end
-        if @host
-          str << @host
-        end
-        if @port && @port != self.default_port
-          str << ':'
-          str << @port.to_s
-        end
+        str << self.authority
         if (@host || @port) && !@path.empty? && !@path.start_with?('/')
           str << '/'
         end

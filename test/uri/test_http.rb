@@ -73,8 +73,8 @@ class URI::TestHTTP < Test::Unit::TestCase
     assert_equal('a.b.c', URI.parse('http://a.b.c/').authority)
     assert_equal('a.b.c:8081', URI.parse('http://a.b.c:8081/').authority)
     assert_equal('a.b.c', URI.parse('http://a.b.c:80/').authority)
+    assert_equal('userinfo@a.b.c', URI.parse('https://userinfo@a.b.c/').authority)
   end
-
 
   def test_origin
     assert_equal('http://a.b.c', URI.parse('http://a.b.c/').origin)
