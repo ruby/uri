@@ -1108,10 +1108,13 @@ module URI
     #
     # +oth+::
     #    URI or String
+    # +allow_relative+::
+    #    Boolean (false by default)
     #
     # == Description
     #
-    # Merges two URIs.
+    # Merges two URIs. If +allow_relative+ is true, allows merging
+    # a relative base URI with a relative URI.
     #
     # == Usage
     #
@@ -1121,7 +1124,7 @@ module URI
     #   uri.merge("/main.rbx?page=1")
     #   # => "http://my.example.com/main.rbx?page=1"
     #
-    def merge(oth)
+    def merge(oth, allow_relative = false)
       rel = parser.__send__(:convert_to_uri, oth)
 
       if rel.absolute?
@@ -1130,7 +1133,7 @@ module URI
         return rel
       end
 
-      unless self.absolute?
+      unless self.absolute? || allow_relative
         raise BadURIError, "both URI are relative"
       end
 
