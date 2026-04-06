@@ -1570,7 +1570,23 @@ module URI
     def self.use_proxy?(hostname, addr, port, no_proxy) # :nodoc:
       hostname = hostname.downcase
       dothostname = ".#{hostname}"
-      no_proxy.scan(/([^:,\s]+)(?::(\d+))?/) {|p_host, p_port|
+      no_proxy.split(/[,\s]+/).each {|entry|
+        next if entry.empty?
+        # Bracketed IPv6: [addr] or [addr]:port
+        if entry =~ /\A\[([^\]]+)\](?::(\d+))?\z/
+          p_port = $2  # read $2 before sub() clobbers global match variables
+          p_host = $1.sub(/%.*\z/, '')  # strip zone ID (e.g. [::1%eth0] -> ::1)
+        # Bare IPv6: address contains more than one colon (e.g. 2001:db8::1 or 2001:db8::/32)
+        elsif entry.count(':') > 1
+          p_host = entry.sub(/%.*\z/, '')  # strip zone ID (e.g. ::1%eth0 -> ::1)
+          p_port = nil
+        # IPv4 or hostname with optional port (trailing colon treated as no port)
+        elsif entry =~ /\A([^:]+)(?::(\d+)?)?\z/
+          p_host = $1
+          p_port = ($2 && !$2.empty?) ? $2 : nil
+        else
+          next
+        end
         if !p_port || port == p_port.to_i
           if p_host.start_with?('.')
             return false if hostname.end_with?(p_host.downcase)
@@ -1581,7 +1597,6 @@ module URI
             begin
               return false if IPAddr.new(p_host).include?(addr)
             rescue IPAddr::InvalidAddressError
-              next
             end
           end
         end

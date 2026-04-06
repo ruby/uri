@@ -1020,6 +1020,26 @@ class URI::TestGeneric < Test::Unit::TestCase
       ['127.0.0.1', '127.0.0.1', 80, '10.224.0.0/22', true],
       ['10.224.1.1', '10.224.1.1', 80, '10.224.1.1', false],
       ['10.224.1.1', '10.224.1.1', 80, '10.224.0.0/22', false],
+      # IPv6: bare address in no_proxy
+      ['2001:db8::1', '2001:db8::1', 80, '2001:db8::1', false],
+      # IPv6: bracketed address in no_proxy
+      ['2001:db8::1', '2001:db8::1', 80, '[2001:db8::1]', false],
+      # IPv6: bracketed address with matching port
+      ['2001:db8::1', '2001:db8::1', 80, '[2001:db8::1]:80', false],
+      # IPv6: bracketed address with non-matching port
+      ['2001:db8::1', '2001:db8::1', 80, '[2001:db8::1]:443', true],
+      # IPv6: CIDR notation
+      ['2001:db8::1', '2001:db8::1', 80, '2001:db8::/32', false],
+      # IPv6: address not in no_proxy
+      ['2001:db8::2', '2001:db8::2', 80, '2001:db8::1', true],
+      # IPv6: multiple entries including IPv6
+      ['2001:db8::1', '2001:db8::1', 80, 'example.com,2001:db8::1', false],
+      # IPv6: zone ID stripped before matching (::1%eth0 should match ::1)
+      ['::1', '::1', 80, '::1%eth0', false],
+      # IPv6: zone ID stripped from bracketed form too ([::1%eth0]:80 should match ::1 on port 80)
+      ['::1', '::1', 80, '[::1%eth0]:80', false],
+      # Trailing colon treated as no-port (regression guard)
+      ['example.com', nil, 80, 'example.com:', false],
     ].each do |hostname, addr, port, no_proxy, expected|
       assert_equal expected, URI::Generic.use_proxy?(hostname, addr, port, no_proxy),
         "use_proxy?('#{hostname}', '#{addr}', #{port}, '#{no_proxy}')"
