@@ -1568,9 +1568,13 @@ module URI
     end
 
     def self.use_proxy?(hostname, addr, port, no_proxy) # :nodoc:
+      no_proxy_entries = no_proxy.scan(/([^:,\s]+)(?::(\d+))?/)
+      return false if no_proxy_entries.any? { |entry, _| entry == '*' }
+
       hostname = hostname.downcase
       dothostname = ".#{hostname}"
-      no_proxy.scan(/([^:,\s]+)(?::(\d+))?/) {|p_host, p_port|
+
+      no_proxy_entries.each {|p_host, p_port|
         if !p_port || port == p_port.to_i
           if p_host.start_with?('.')
             return false if hostname.end_with?(p_host.downcase)
