@@ -1116,4 +1116,59 @@ class URI::TestGeneric < Test::Unit::TestCase
     yield h
   end
 
+  def test_deconstruct_keys
+    uri = URI("http://example.com:8080/path?foo=bar&baz=qux#fragment")
+    keys = uri.deconstruct_keys(nil)
+    assert_equal "http", keys[:scheme]
+    assert_equal "example.com", keys[:host]
+    assert_equal 8080, keys[:port]
+    assert_equal "/path", keys[:path]
+    assert_equal "foo=bar&baz=qux", keys[:query]
+    assert_equal "fragment", keys[:fragment]
+    assert_equal({ foo: "bar", baz: "qux" }, keys[:params])
+  end
+
+  def test_deconstruct_keys_no_params
+    uri = URI("http://example.com/path")
+    keys = uri.deconstruct_keys([:scheme, :host, :path])
+    assert_equal "http", keys[:scheme]
+    assert_equal "example.com", keys[:host]
+    assert_equal "/path", keys[:path]
+    refute keys.key?(:params)
+  end
+
+  def test_pattern_matching_scheme_and_host
+    begin
+      uri = URI("https://example.com/path")
+      result = instance_eval <<~RUBY, __FILE__, __LINE__ + 1
+        case uri
+        in scheme: "https", host: "example.com"
+          "matched"
+        else
+          "no match"
+        end
+      RUBY
+      assert_equal "matched", result
+    rescue SyntaxError
+      omit "Pattern matching not supported in Ruby < 2.7"
+    end
+  end
+
+  def test_pattern_matching_with_params
+    begin
+      uri = URI("http://example.com/search?q=ruby&lang=en")
+      result = instance_eval <<~RUBY, __FILE__, __LINE__ + 1
+        case uri
+        in scheme: "http", path: "/search", params: { q: "ruby" }
+          "search query"
+        else
+          "no match"
+        end
+      RUBY
+      assert_equal "search query", result
+    rescue SyntaxError
+      omit "Pattern matching not supported in Ruby < 2.7"
+    end
+  end
+
 end
