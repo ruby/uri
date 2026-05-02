@@ -96,27 +96,6 @@ module URI
     #
     # == Description
     #
-    # Returns the authority for an HTTP uri, as defined in
-    # https://www.rfc-editor.org/rfc/rfc3986#section-3.2.
-    #
-    #
-    # Example:
-    #
-    #     URI::HTTP.build(host: 'www.example.com', path: '/foo/bar').authority #=> "www.example.com"
-    #     URI::HTTP.build(host: 'www.example.com', port: 8000, path: '/foo/bar').authority #=> "www.example.com:8000"
-    #     URI::HTTP.build(host: 'www.example.com', port: 80, path: '/foo/bar').authority #=> "www.example.com"
-    #
-    def authority
-      if port == default_port
-        host
-      else
-        "#{host}:#{port}"
-      end
-    end
-
-    #
-    # == Description
-    #
     # Returns the origin for an HTTP uri, as defined in
     # https://www.rfc-editor.org/rfc/rfc6454.
     #
@@ -127,9 +106,14 @@ module URI
     #     URI::HTTP.build(host: 'www.example.com', port: 8000, path: '/foo/bar').origin #=> "http://www.example.com:8000"
     #     URI::HTTP.build(host: 'www.example.com', port: 80, path: '/foo/bar').origin #=> "http://www.example.com"
     #     URI::HTTPS.build(host: 'www.example.com', path: '/foo/bar').origin #=> "https://www.example.com"
+    #     URI::HTTPS.build(host: 'www.example.com', userinfo: 'user:password').origin #=> "https://www.example.com"
     #
     def origin
-      "#{scheme}://#{authority}"
+      str = "#{scheme}://#{host}"
+      if port != default_port
+        str << ":#{port}"
+      end
+      str
     end
   end
 
