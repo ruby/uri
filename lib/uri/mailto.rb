@@ -15,8 +15,6 @@ module URI
   # RFC6068, the mailto URL scheme.
   #
   class MailTo < Generic
-    include RFC2396_REGEXP
-
     # A Default port of nil for URI::MailTo.
     DEFAULT_PORT = nil
 
