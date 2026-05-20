@@ -972,6 +972,37 @@ class URI::TestGeneric < Test::Unit::TestCase
     end
   end
 
+  def test_find_proxy_no_proxy_not_resolving_hostname
+    getaddress = IPSocket.method(:getaddress)
+    resolved_hosts = []
+    IPSocket.singleton_class.class_eval do
+      undef getaddress
+      define_method(:getaddress) do |host|
+        resolved_hosts << host
+        host
+      end
+    end
+
+    with_proxy_env('http_proxy'=>'http://127.0.0.1:8080', 'no_proxy'=>'example.org') {|env|
+      assert_nil(URI("http://example.org/").find_proxy(env))
+      assert_nil(URI("http://www.example.org/").find_proxy(env))
+    }
+    with_proxy_env('http_proxy'=>'http://127.0.0.1:8080', 'no_proxy'=>'.example.org') {|env|
+      assert_nil(URI("http://www.example.org/").find_proxy(env))
+    }
+    with_proxy_env('http_proxy'=>'http://127.0.0.1:8080', 'no_proxy'=>'192.0.2.2') {|env|
+      assert_nil(URI("http://192.0.2.2/").find_proxy(env))
+    }
+
+    assert_equal([], resolved_hosts,
+      "IPSocket.getaddress should not be called when hostname matches no_proxy")
+  ensure
+    IPSocket.singleton_class.class_eval do
+      undef getaddress
+      define_method(:getaddress, getaddress)
+    end
+  end
+
   def test_find_proxy_no_proxy_cidr
     with_proxy_env('http_proxy'=>'http://127.0.0.1:8080', 'no_proxy'=>'192.0.2.0/24') {|env|
       assert_equal(URI('http://127.0.0.1:8080'), URI("http://192.0.1.1/").find_proxy(env))
