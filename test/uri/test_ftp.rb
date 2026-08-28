@@ -6,6 +6,15 @@ class URI::TestFTP < Test::Unit::TestCase
   def setup
   end
 
+
+  def test_to_s_does_not_mutate_frozen_ftp_uri
+    uri = URI.parse("ftp://example.test/file;type=i?download=1#section").freeze
+
+    2.times do
+      assert_equal("ftp://example.test/file;type=i?download=1#section", uri.to_s)
+    end
+  end
+
   def test_parse
     url = URI.parse('ftp://user:pass@host.com/abc/def')
     assert_kind_of(URI::FTP, url)

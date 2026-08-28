@@ -249,14 +249,11 @@ module URI
 
     # Returns a String representation of the URI::FTP.
     def to_s
-      save_path = nil
-      if @typecode
-        save_path = @path
-        @path = @path + TYPECODE_PREFIX + @typecode
-      end
       str = super
       if @typecode
-        @path = save_path
+        suffix_length = (@query ? @query.length + 1 : 0) +
+          (@fragment ? @fragment.length + 1 : 0)
+        str.insert(-suffix_length - 1, TYPECODE_PREFIX + @typecode)
       end
 
       return str
