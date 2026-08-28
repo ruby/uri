@@ -90,7 +90,7 @@ module URI
         elsif args.kind_of?(Hash)
           tmp = {}
           args.each do |key, value|
-            tmp[key] = if value
+            tmp[key] = if value.is_a?(String)
                 URI::RFC2396_PARSER.escape(value)
               else
                 value
