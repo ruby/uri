@@ -116,6 +116,18 @@ module URI
       parse_query
     end
 
+    def set_path(val)
+      super
+      parse_dn if val
+    end
+    protected :set_path
+
+    def query=(val)
+      result = super
+      parse_query
+      result
+    end
+
     # Private method to cleanup +dn+ from using the +path+ component attribute.
     def parse_dn
       raise InvalidURIError, 'bad LDAP URL' unless @path
