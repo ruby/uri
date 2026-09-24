@@ -212,9 +212,11 @@ module URI
     end
 
     def merge(oth) # :nodoc:
-      tmp = super(oth)
-      if self != tmp
-        tmp.set_typecode(oth.typecode)
+      rel = parser.__send__(:convert_to_uri, oth)
+      tmp = super(rel)
+      if tmp.is_a?(FTP) && self != tmp
+        tmp.set_typecode(rel.is_a?(FTP) ? rel.typecode : nil)
+        tmp = parser.parse(tmp.to_s) unless rel.is_a?(FTP)
       end
 
       return tmp
