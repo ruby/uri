@@ -14,6 +14,14 @@ class URI::TestMailTo < Test::Unit::TestCase
     uri.class.component.collect {|c| uri.send(c)}
   end
 
+
+  def test_to_mailtext_preserves_literal_plus
+    uri = URI.parse("mailto:a+b@example.test?subject=a+b&body=x+y")
+
+    assert_equal("To: a+b@example.test\nSubject: a+b\n\nx+y\n", uri.to_mailtext)
+    assert_equal(uri.to_mailtext, uri.to_rfc822text)
+  end
+
   def test_build
     ok = []
     bad = []
