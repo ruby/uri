@@ -100,13 +100,8 @@ module URI
       # foo/bar       /foo/bar
       # /foo/bar      /%2Ffoo/bar
       #
-      if args.kind_of?(Array)
-        args[3] = '/' + args[3].sub(/^\//, '%2F')
-      else
-        args[:path] = '/' + args[:path].sub(/^\//, '%2F')
-      end
-
       tmp = Util::make_components_hash(self, args)
+      tmp[:path] = '/' + tmp[:path].sub(/^\//, '%2F')
 
       if tmp[:typecode]
         if tmp[:typecode].size == 1
