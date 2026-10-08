@@ -12,6 +12,16 @@ class URI::TestParser < Test::Unit::TestCase
     assert_match(/URI::RFC3986_Parser/, URI::Parser.new.inspect)
   end
 
+  def test_inspect_in_ractor
+    return unless defined?(Ractor)
+    assert_ractor(<<~RUBY, require: 'uri')
+      r = Ractor.new { [URI::RFC3986_PARSER.inspect, URI::RFC2396_PARSER.inspect] }
+      rfc3986, rfc2396 = r.value
+      assert_match(/URI::RFC3986_Parser/, rfc3986)
+      assert_match(/URI::RFC2396_Parser/, rfc2396)
+    RUBY
+  end
+
   def test_compare
     url = 'http://a/b/c/d;p?q'
     u0 = URI.parse(url)
