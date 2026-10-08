@@ -49,6 +49,32 @@ class URI::TestParser < Test::Unit::TestCase
     URI.parser = URI::DEFAULT_PARSER
   end
 
+  def test_generic_build_uses_current_parser
+    URI.parser = URI::RFC2396_PARSER
+
+    uri = URI::Generic.build(['http', nil, 'example.com', nil, nil, '/', nil, nil, nil])
+    assert_equal(URI::RFC2396_Parser, uri.parser.class)
+
+    URI.parser = URI::RFC3986_PARSER
+    uri = URI::Generic.build(['http', nil, 'example.com', nil, nil, '/', nil, nil, nil])
+    assert_equal(URI::RFC3986_Parser, uri.parser.class)
+  ensure
+    URI.parser = URI::DEFAULT_PARSER
+  end
+
+  def test_generic_new_uses_current_parser_when_omitted
+    URI.parser = URI::RFC2396_PARSER
+
+    uri = URI::Generic.new('http', nil, 'example.com', nil, nil, '/', nil, nil, nil)
+    assert_equal(URI::RFC2396_Parser, uri.parser.class)
+
+    URI.parser = URI::RFC3986_PARSER
+    uri = URI::Generic.new('http', nil, 'example.com', nil, nil, '/', nil, nil, nil)
+    assert_equal(URI::RFC3986_Parser, uri.parser.class)
+  ensure
+    URI.parser = URI::DEFAULT_PARSER
+  end
+
   def test_parse_query_pct_encoded
     assert_equal('q=%32!$&-/?.09;=:@AZ_az~', URI.parse('https://www.example.com/search?q=%32!$&-/?.09;=:@AZ_az~').query)
     assert_raise(URI::InvalidURIError) { URI.parse('https://www.example.com/search?q=%XX') }
