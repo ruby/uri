@@ -299,8 +299,8 @@ module URI
   #   # => ["http://foo.example.com/bla", "mailto:test@example.com"]
   #
   def self.extract(str, schemes = nil, &block) # :nodoc:
-    warn "URI.extract is obsolete", uplevel: 1 if $VERBOSE
-    PARSER.extract(str, schemes, &block)
+    warn "URI.extract is obsolete. Please use URI::RFC2396_PARSER.extract instead.", uplevel: 1 if $VERBOSE
+    URI::RFC2396_PARSER.extract(str, schemes, &block)
   end
 
   #
@@ -336,8 +336,8 @@ module URI
   #   end
   #
   def self.regexp(schemes = nil)# :nodoc:
-    warn "URI.regexp is obsolete", uplevel: 1 if $VERBOSE
-    PARSER.make_regexp(schemes)
+    warn "URI.regexp is obsolete. Please use URI::RFC2396_PARSER.make_regexp instead.", uplevel: 1 if $VERBOSE
+    RFC2396_PARSER.make_regexp(schemes)
   end
 
   TBLENCWWWCOMP_ = {} # :nodoc:
