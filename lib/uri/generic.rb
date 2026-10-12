@@ -158,7 +158,7 @@ module URI
     # +fragment+::
     #   Part of the URI after '#' character.
     # +parser+::
-    #   Parser for internal use [URI::DEFAULT_PARSER by default].
+    #   Parser for internal use [URI::PARSER by default].
     # +arg_check+::
     #   Check arguments [false by default].
     #
@@ -171,7 +171,7 @@ module URI
                    path, opaque,
                    query,
                    fragment,
-                   parser = DEFAULT_PARSER,
+                   parser = PARSER,
                    arg_check = false)
       @scheme = nil
       @user = nil
@@ -182,7 +182,7 @@ module URI
       @query = nil
       @opaque = nil
       @fragment = nil
-      @parser = parser == DEFAULT_PARSER ? nil : parser
+      @parser = parser == PARSER ? nil : parser
 
       if arg_check
         self.scheme = scheme
@@ -284,13 +284,13 @@ module URI
 
     # Returns the parser to be used.
     #
-    # Unless the +parser+ is defined, DEFAULT_PARSER is used.
+    # Unless the +parser+ is defined, PARSER is used.
     #
     def parser
       if !defined?(@parser) || !@parser
-        DEFAULT_PARSER
+        PARSER
       else
-        @parser || DEFAULT_PARSER
+        @parser || PARSER
       end
     end
 
