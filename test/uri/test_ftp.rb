@@ -6,6 +6,19 @@ class URI::TestFTP < Test::Unit::TestCase
   def setup
   end
 
+
+  def test_build_does_not_mutate_components
+    components = {host: "example.test", path: "/folder"}
+    original = components.dup
+
+    first = URI::FTP.build(components)
+    second = URI::FTP.build(components)
+
+    assert_equal(original, components)
+    assert_equal(first, second)
+    assert_nothing_raised { URI::FTP.build(components.freeze) }
+  end
+
   def test_parse
     url = URI.parse('ftp://user:pass@host.com/abc/def')
     assert_kind_of(URI::FTP, url)
