@@ -16,6 +16,16 @@ class URI::TestGeneric < Test::Unit::TestCase
     uri.class.component.collect {|c| uri.send(c)}
   end
 
+
+  def test_build2_preserves_non_string_components
+    components = {host: "example.test", port: 8080, path: "/a b"}
+
+    uri = URI::HTTP.build2(components)
+
+    assert_equal("http://example.test:8080/a%20b", uri.to_s)
+    assert_equal({host: "example.test", port: 8080, path: "/a b"}, components)
+  end
+
   def test_to_s
     exp = 'http://example.com/'.freeze
     str = URI(exp).to_s
