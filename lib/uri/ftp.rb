@@ -49,7 +49,7 @@ module URI
       # Do not use this method!  Not tested.  [Bug #7301]
       # This methods remains just for compatibility,
       # Keep it undocumented until the active maintainer is assigned.
-      typecode = nil if typecode.size == 0
+      typecode = nil if typecode&.empty?
       if typecode && !TYPECODE.include?(typecode)
         raise ArgumentError,
           "bad typecode is specified: #{typecode}"
@@ -57,8 +57,10 @@ module URI
 
       # do escape
 
+      userinfo = password.nil? ? user : "#{user}:#{password}"
+
       self.new('ftp',
-               [user, password],
+               userinfo,
                host, port, nil,
                typecode ? path + TYPECODE_PREFIX + typecode : path,
                nil, nil, nil, arg_check)
