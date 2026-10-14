@@ -220,6 +220,16 @@ module URI
       return tmp
     end
 
+    def merge!(oth) # :nodoc:
+      tmp = merge(oth)
+      return if self == tmp && query == tmp.query && fragment == tmp.fragment
+
+      replace!(tmp)
+      self.query = tmp.query
+      self.fragment = tmp.fragment
+      self
+    end
+
     # Returns the path from an FTP URI.
     #
     # RFC 1738 specifically states that the path for an FTP URI does not
