@@ -17,6 +17,11 @@ class URI::TestCommon < Test::Unit::TestCase
     end
   end
 
+
+  def test_encode_www_form_preserves_nil_array_values
+    assert_equal("foo&foo=a&foo", URI.encode_www_form(foo: [nil, "a", nil]))
+  end
+
   def test_fallback_constants
     EnvUtil.suppress_warning do
       assert_raise(NameError) { URI::FOO }

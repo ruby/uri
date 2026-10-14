@@ -575,6 +575,7 @@ module URI
             str << '='
             str << encode_www_form_component(w, enc)
           end
+          str
         end.join('&')
       else
         str = encode_www_form_component(k, enc)
