@@ -81,6 +81,8 @@ module URI
           raise InvalidURIError, "relative reference to a URL with an opaque path: #{input.dump}"
         end
         scheme = base.scheme
+        # The file state handles a reference relative to a file URL.
+        relative = false if scheme == "file"
       elsif base && scheme == base.scheme && scheme != "file" && SPECIAL_SCHEMES.key?(scheme)
         # special relative or authority state: two slashes start an
         # authority; anything else is relative to the base.
@@ -100,14 +102,7 @@ module URI
       if relative
         parse_relative(url, rest, base, special)
       elsif scheme == "file"
-        # Approximates file state, file slash state and file host state
-        # until they are implemented: exactly two leading "/" or "\\"
-        # start a host, which may be empty.
-        if rest.match?(TWO_SLASHES)
-          parse_authority(url, rest[2..-1], true, host_required: false)
-        else
-          url.path = parse_path(rest, true)
-        end
+        parse_file(url, rest, base&.scheme == "file" ? base : nil)
       elsif special
         # special authority slashes state and special authority ignore
         # slashes state: skip any run of "/" or "\\".
@@ -154,10 +149,82 @@ module URI
           url.query = base.query if url.query.nil?
         else
           path = base.path.dup
-          path.pop # shorten
+          shorten(path, false)
           url.path = parse_path(rest, special, path)
         end
       end
+    end
+
+    # file state, file slash state and file host state. +base+ is the
+    # base URL if it is a file URL. +rest+ is the input after any scheme,
+    # without query and fragment, which +url+ already has.
+    def parse_file(url, rest, base)
+      url.host = ""
+      if rest.start_with?("/", "\\")
+        rest = rest[1..-1]
+        # file slash state
+        return parse_file_host(url, rest[1..-1]) if rest.start_with?("/", "\\")
+        if base
+          url.host = base.host
+          if !starts_with_windows_drive_letter?(rest) && normalized_windows_drive_letter?(base.path[0])
+            url.path = [base.path[0]]
+          end
+        end
+        url.path = parse_path(rest, true, url.path, file: true, start: false)
+      elsif base
+        url.host = base.host
+        url.path = base.path.dup
+        if rest.empty?
+          # c is EOF, "?" or "#": the base query too, unless a query is given.
+          url.query = base.query if url.query.nil?
+        else
+          if starts_with_windows_drive_letter?(rest)
+            url.path = []
+          else
+            shorten(url.path, true)
+          end
+          url.path = parse_path(rest, true, url.path, file: true, start: false)
+        end
+      else
+        url.path = parse_path(rest, true, [], file: true, start: false)
+      end
+    end
+
+    # file host state. +rest+ starts after the two slashes.
+    def parse_file_host(url, rest)
+      host_end = rest.index(SPECIAL_PATH_SEPARATOR) || rest.size
+      buffer = rest[0, host_end]
+      if windows_drive_letter?(buffer)
+        # The buffer is not a host but the start of the path.
+        url.path = parse_path(rest, true, [], file: true, start: false)
+        return
+      end
+      unless buffer.empty?
+        host = parse_host(buffer, true)
+        url.host = host == "localhost" ? "" : host
+      end
+      url.path = parse_path(rest[host_end..-1], true, [], file: true)
+    end
+
+    # https://url.spec.whatwg.org/#windows-drive-letter
+    def windows_drive_letter?(string)
+      string.match?(WINDOWS_DRIVE_LETTER)
+    end
+
+    def normalized_windows_drive_letter?(string)
+      string.to_s.match?(NORMALIZED_WINDOWS_DRIVE_LETTER)
+    end
+
+    # https://url.spec.whatwg.org/#start-with-a-windows-drive-letter
+    def starts_with_windows_drive_letter?(string)
+      string.match?(STARTS_WITH_WINDOWS_DRIVE_LETTER)
+    end
+
+    # shorten a URL's path: a file URL's path that is only a normalized
+    # Windows drive letter is kept.
+    def shorten(path, file)
+      return if file && path.size == 1 && normalized_windows_drive_letter?(path[0])
+      path.pop
     end
 
     def copy_authority(url, base)
@@ -246,6 +313,9 @@ module URI
     SPECIAL_AUTHORITY_SLASHES = %r{\A[/\\]*} # :nodoc:
     # Two of "/" or "\\", which start an authority in a special URL.
     TWO_SLASHES = %r{\A[/\\]{2}} # :nodoc:
+    WINDOWS_DRIVE_LETTER = /\A[A-Za-z][:|]\z/ # :nodoc:
+    NORMALIZED_WINDOWS_DRIVE_LETTER = /\A[A-Za-z]:\z/ # :nodoc:
+    STARTS_WITH_WINDOWS_DRIVE_LETTER = %r{\A[A-Za-z][:|](?:\z|[/\\?#])} # :nodoc:
     AUTHORITY_END = %r{[/?#]} # :nodoc:
     SPECIAL_AUTHORITY_END = %r{[/?#\\]} # :nodoc:
 
@@ -338,14 +408,19 @@ module URI
       url.path = parse_path(remainder, special)
     end
 
-    # path start state and path state. Returns the list of path segments,
-    # appended to +path+ (the shortened base path of a relative reference).
-    def parse_path(input, special, path = [])
+    # path start state (unless +start+ is false) and path state. Returns
+    # the list of path segments, appended to +path+ (the shortened base
+    # path of a relative reference). +file+ applies the Windows drive
+    # letter rules of file URLs.
+    def parse_path(input, special, path = [], file: false, start: true)
       separator = special ? SPECIAL_PATH_SEPARATOR : "/"
-      # path start state: a special URL always has a path, even an empty
-      # one; another URL has one only if anything follows the authority.
-      return path if input.empty? && !special
-      input = input[1..-1] if input.start_with?("/") || (special && input.start_with?("\\"))
+      if start
+        # path start state: a special URL always has a path, even an
+        # empty one; another URL has one only if anything follows the
+        # authority.
+        return path if input.empty? && !special
+        input = input[1..-1] if input.start_with?("/") || (special && input.start_with?("\\"))
+      end
 
       buffers = input.split(separator, -1)
       buffers = [""] if buffers.empty?
@@ -355,11 +430,14 @@ module URI
         # than by a separator.
         last = i == buffers.size - 1
         if double_dot_segment?(buffer)
-          segments.pop
+          shorten(segments, file)
           segments << "" if last
         elsif single_dot_segment?(buffer)
           segments << "" if last
         else
+          if file && segments.empty? && windows_drive_letter?(buffer)
+            buffer = "#{buffer[0]}:"
+          end
           segments << buffer
         end
       end

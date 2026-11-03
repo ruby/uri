@@ -585,11 +585,10 @@ class URI::TestWHATWGParser < Test::Unit::TestCase
   end
 
   def test_split_file_host_may_be_empty
-    # Interim behaviour until the file states are implemented.
     assert_equal(["", "/tmp/a"], split("file:///tmp/a").values_at(HOST, PATH))
     assert_equal(["host", "/a"], split("file://host/a").values_at(HOST, PATH))
     assert_equal(["host", "/a"], split("file:\\\\host/a").values_at(HOST, PATH))
-    assert_equal([nil, "/a"], split("file:/a").values_at(HOST, PATH))
+    assert_equal(["", "/a"], split("file:/a").values_at(HOST, PATH))
   end
 
   # --- host: domain -------------------------------------------------
@@ -1301,8 +1300,6 @@ class URI::TestWHATWGParser < Test::Unit::TestCase
   end
 
   def test_split_file_path_dot_segments
-    # Interim until the file states (and Windows drive letters) are
-    # implemented.
     assert_equal("/b", path("file:///a/../b"))
     assert_equal("/b", path("file:/a/../b"))
   end
@@ -1653,6 +1650,171 @@ class URI::TestWHATWGParser < Test::Unit::TestCase
 
   def test_split_without_base_still_fails_for_relative_reference
     assert_raise(URI::InvalidURIError) { split("g") }
+  end
+
+  # --- file ---------------------------------------------------------
+  # https://url.spec.whatwg.org/#file-state
+  # https://url.spec.whatwg.org/#file-slash-state
+  # https://url.spec.whatwg.org/#file-host-state
+  # https://url.spec.whatwg.org/#windows-drive-letter
+  # https://url.spec.whatwg.org/#shorten-a-urls-path
+
+  def file(input, base = nil)
+    base ? join(base, input) : URI::WHATWG_PARSER.parse(input).to_s
+  end
+
+  def test_file_with_empty_host
+    assert_equal("file:///tmp/a", file("file:///tmp/a"))
+    assert_equal(["", "/tmp/a"], split("file:///tmp/a").values_at(HOST, PATH))
+  end
+
+  def test_file_with_host
+    assert_equal(["host", "/a"], split("file://host/a").values_at(HOST, PATH))
+    assert_equal("file://host/a", file("FILE://HOST/a"))
+  end
+
+  def test_file_without_slashes_has_empty_host
+    assert_equal(["", "/a"], split("file:a").values_at(HOST, PATH))
+    assert_equal(["", "/a"], split("file:/a").values_at(HOST, PATH))
+    assert_equal(["", "/"], split("file:").values_at(HOST, PATH))
+  end
+
+  def test_file_backslashes_are_slashes
+    assert_equal("file://host/a/b", file("file:\\\\host\\a\\b"))
+    assert_equal("file:///a", file("file:\\a"))
+  end
+
+  def test_file_more_than_two_slashes_keep_empty_host
+    assert_equal("file:////a", file("file:////a"))
+    assert_equal("file:///localhost//cat", file("file:///localhost//cat"))
+    assert_equal("file:////localhost//cat", file("file://\\/localhost//cat"))
+  end
+
+  def test_file_localhost_is_empty_host
+    assert_equal("file:///a", file("file://localhost/a"))
+    assert_equal("file:///a", file("file://LOCALHOST/a"))
+    assert_equal("file:///", file("file://localhost"))
+    assert_equal("file://localhost.example/a", file("file://localhost.example/a"))
+  end
+
+  def test_file_host_is_a_domain
+    assert_equal("file://example.com/", file("file://EX%41MPLE.com/"))
+    assert_equal("file://127.0.0.1/", file("file://0x7f.1/"))
+    assert_equal("file://[::1]/", file("file://[0::1]/"))
+  end
+
+  def test_file_host_has_no_port_or_userinfo
+    ["file://example:1/", "file://example:/", "file://u@host/", "file://u:p@host/", "file://ho st/"].each do |input|
+      assert_raise(URI::InvalidURIError, input) { split(input) }
+    end
+  end
+
+  def test_file_query_and_fragment
+    assert_equal("file:///a?q#f", file("file:///a?q#f"))
+    assert_equal("file://host/?q", file("file://host?q"))
+  end
+
+  def test_file_drive_letter_is_normalized_in_first_segment
+    assert_equal("file:///C:/m/", file("file:C|/m/"))
+    assert_equal("file:///c:/foo/bar.html", file("file:c:\\foo\\bar.html"))
+    assert_equal("file:///C:/", file("file:///C|/"))
+    assert_equal("file:///C:", file("file:///C|"))
+  end
+
+  def test_file_drive_letter_only_in_first_segment
+    assert_equal("file:///a/C|/", file("file:///a/C|/"))
+  end
+
+  def test_file_not_a_drive_letter
+    assert_equal("file:///C||/m/", file("file:C||/m/"))
+    assert_equal("file:///1:/", file("file:///1:/"))
+    assert_equal("file:///C%3A/", file("file:///C%3A/"))
+    assert_equal("file:///C%7C/", file("file:///C%7C/"))
+    assert_equal("file:///CC:/", file("file:///CC:/"))
+  end
+
+  def test_file_drive_letter_in_host_position_is_a_path
+    assert_equal("file:///C:/", file("file://C:/"))
+    assert_equal("file:///C:/", file("file://C|/"))
+    assert_equal("file:///d:", file("//d:", "file:///C:/a/b"))
+  end
+
+  def test_file_double_dot_does_not_remove_drive_letter
+    assert_equal("file:///C:/", file("file:///C:/.."))
+    assert_equal("file:///C:/", file("file:///C:/a/../.."))
+    assert_equal("file:///C:/", file("..", "file:///C:/"))
+    assert_equal("file:///d:/", file("//d:/..", "file:///C:/a/b"))
+  end
+
+  def test_file_double_dot_removes_other_first_segments
+    assert_equal("file:///", file("file:///a/.."))
+    assert_equal("file:///", file("file:///C|a/.."))
+  end
+
+  def test_file_drive_letter_with_host_keeps_host
+    assert_equal("file://host/C:/", file("file://host/C|/"))
+    assert_equal("file://host/C:", file("C|", "file://host/dir/file"))
+  end
+
+  def test_file_relative_to_file_base
+    base = "file:///tmp/mock/path"
+    assert_equal("file:///tmp/mock/a", file("a", base))
+    assert_equal("file:///tmp/mock/a", file("file:a", base))
+    assert_equal("file:///a", file("/a", base))
+    assert_equal("file:///a", file("file:/a", base))
+    assert_equal("file://h/a", file("//h/a", base))
+    assert_equal("file:///", file("//", base))
+    assert_equal("file:///", file("///", base))
+    assert_equal("file:///test", file("///test", base))
+  end
+
+  def test_file_relative_keeps_base_host
+    base = "file://host/dir/file"
+    assert_equal("file://host/dir/a", file("a", base))
+    assert_equal("file://host/a", file("/a", base))
+    assert_equal("file://host/dir/C|a", file("C|a", base))
+  end
+
+  def test_file_relative_keeps_base_query_only_when_empty
+    base = "file:///test?test#test"
+    assert_equal("file:///test?test", file("file:", base))
+    assert_equal("file:///test?x", file("file:?x", base))
+    assert_equal("file:///test?test#x", file("file:#x", base))
+    assert_equal("file:///a", file("a", base))
+  end
+
+  def test_file_relative_drive_letter_replaces_base_path
+    base = "file:///tmp/mock/path"
+    assert_equal("file:///C:/foo/bar", file("C|/foo/bar", base))
+    assert_equal("file:///C:/foo/bar", file("/C|\\foo\\bar", base))
+    assert_equal("file:///C:/foo/bar", file("//C|/foo/bar", base))
+    assert_equal("file://host/C:", file("C|", "file://host/D:/dir1/dir2/file"))
+  end
+
+  def test_file_absolute_path_keeps_base_drive_letter
+    assert_equal("file:///C:/", file("/", "file:///C:/a/b"))
+    assert_equal("file://h/C:/", file("/", "file://h/C:/a/b"))
+    assert_equal("file:///C:/x", file("/x", "file:///C:/a/b"))
+  end
+
+  def test_file_absolute_path_with_own_drive_letter
+    assert_equal("file:///c:/foo/bar", file("/c|/foo/bar", "file:///c:/baz/qux"))
+  end
+
+  def test_file_relative_to_non_file_base_is_not_file
+    assert_equal("http://a/C|/x", file("C|/x", "http://a/b"))
+  end
+
+  def test_file_scheme_from_non_file_base
+    assert_equal("file:///a", file("file:/a", "http://a/b"))
+    assert_equal("file:///C:/", file("file:C|/", "http://a/b"))
+  end
+
+  def test_file_dot_prefix_is_never_needed
+    # A file URL always has a host (possibly empty), so a path starting
+    # with "//" needs no "/." prefix.
+    assert_equal("file:////p", file("file:.//p"))
+    assert_equal("file:////p", file("file:/.//p"))
   end
 
   # --- building URI objects -----------------------------------------
