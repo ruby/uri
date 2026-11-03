@@ -59,6 +59,9 @@ module WPT
         query = nil if question.empty?
       else
         pathname = uri.path.to_s
+        # The "/." the URL serializer writes before a hostless path that
+        # starts with "//" is not part of pathname.
+        pathname = pathname[2..-1] if uri.host.nil? && pathname.start_with?("/.//")
         query = uri.query
       end
       {

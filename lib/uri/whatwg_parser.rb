@@ -99,7 +99,7 @@ module URI
         if rest.match?(FILE_SLASHES)
           split_authority(scheme, rest[2..-1], true, host_required: false)
         else
-          [scheme, nil, nil, nil, nil, rest, nil, nil, nil]
+          [scheme, nil, nil, nil, nil, path_without_host(rest, true), nil, nil, nil]
         end
       elsif SPECIAL_SCHEMES.key?(scheme)
         # special authority slashes state and special authority ignore
@@ -110,7 +110,7 @@ module URI
         if rest.start_with?("//")
           split_authority(scheme, rest[2..-1], false)
         else
-          [scheme, nil, nil, nil, nil, rest, nil, nil, nil]
+          [scheme, nil, nil, nil, nil, path_without_host(rest, false), nil, nil, nil]
         end
       else
         # opaque path state
@@ -162,6 +162,8 @@ module URI
     PORT_MAX_DIGITS = MAX_PORT.to_s.size # :nodoc:
 
     TRAILING_SPACE = / \z/ # :nodoc:
+    SPECIAL_PATH_SEPARATOR = %r{[/\\]} # :nodoc:
+    DOUBLE_DOT_SEGMENTS = ["..", ".%2e", "%2e.", "%2e%2e"].freeze # :nodoc:
 
     NOT_C0_CONTROL_OR_SPACE = /[^\x00-\x20]/ # :nodoc:
     ASCII_TAB_OR_NEWLINE = "\t\n\r" # :nodoc:
@@ -208,7 +210,56 @@ module URI
       host = parse_host(host, special) unless host.empty?
       port = parse_port(port, scheme) if port
 
-      [scheme, userinfo, host, port, nil, remainder, nil, nil, nil]
+      path = serialize_path(parse_path(remainder, special))
+      [scheme, userinfo, host, port, nil, path, nil, nil, nil]
+    end
+
+    # The path of a URL without a host. The URL serializer writes "/."
+    # before such a path when it would otherwise start with "//", so it
+    # is not mistaken for an authority when reparsed.
+    def path_without_host(input, special)
+      segments = parse_path(input, special)
+      path = serialize_path(segments)
+      segments.size > 1 && segments[0].empty? ? "/.#{path}" : path
+    end
+
+    # path start state and path state. Returns the list of path segments.
+    def parse_path(input, special)
+      separator = special ? SPECIAL_PATH_SEPARATOR : "/"
+      # path start state: a special URL always has a path, even an empty
+      # one; another URL has one only if anything follows the authority.
+      return [] if input.empty? && !special
+      input = input[1..-1] if input.start_with?("/") || (special && input.start_with?("\\"))
+
+      buffers = input.split(separator, -1)
+      buffers = [""] if buffers.empty?
+      buffers.each_with_index.with_object([]) do |(buffer, i), path|
+        # Whether this segment is ended by the end of the path rather
+        # than by a separator.
+        last = i == buffers.size - 1
+        if double_dot_segment?(buffer)
+          path.pop
+          path << "" if last
+        elsif single_dot_segment?(buffer)
+          path << "" if last
+        else
+          path << buffer
+        end
+      end
+    end
+
+    def serialize_path(segments)
+      segments.map { |segment| "/#{segment}" }.join
+    end
+
+    # https://url.spec.whatwg.org/#single-dot-path-segment
+    def single_dot_segment?(buffer)
+      buffer == "." || buffer.downcase == "%2e"
+    end
+
+    # https://url.spec.whatwg.org/#double-dot-path-segment
+    def double_dot_segment?(buffer)
+      DOUBLE_DOT_SEGMENTS.include?(buffer.downcase)
     end
 
     # authority state, on "@": the last "@" ends the userinfo, and every

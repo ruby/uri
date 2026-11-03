@@ -1152,6 +1152,166 @@ class URI::TestWHATWGParser < Test::Unit::TestCase
     assert_equal(["q", "f"], [uri.query, uri.fragment])
   end
 
+  # --- path ---------------------------------------------------------
+  # https://url.spec.whatwg.org/#path-start-state
+  # https://url.spec.whatwg.org/#path-state
+  # https://url.spec.whatwg.org/#single-dot-path-segment
+  # https://url.spec.whatwg.org/#double-dot-path-segment
+  # https://url.spec.whatwg.org/#url-serializing (the "/." prefix)
+
+  def path(input)
+    split(input)[PATH]
+  end
+
+  def test_split_special_empty_path_is_slash
+    assert_equal("/", path("http://h"))
+    assert_equal("/", path("http://h?q"))
+    assert_equal("/", path("http://h#f"))
+    assert_equal("/", path("http://h:8080"))
+  end
+
+  def test_split_special_path
+    assert_equal("/", path("http://h/"))
+    assert_equal("/a/b", path("http://h/a/b"))
+    assert_equal("/a/b/", path("http://h/a/b/"))
+  end
+
+  def test_split_special_path_treats_backslash_as_slash
+    assert_equal("/a/b", path("http://h\\a\\b"))
+    assert_equal("/a/b/c", path("http://h/a\\b/c"))
+    assert_equal("/", path("http://h\\"))
+  end
+
+  def test_split_path_keeps_empty_segments
+    assert_equal("//a//b", path("http://h//a//b"))
+    assert_equal("///", path("http://h///"))
+  end
+
+  def test_split_single_dot_segments_are_removed
+    assert_equal("/a/b", path("http://h/a/./b"))
+    assert_equal("/a", path("http://h/./a"))
+    assert_equal("/a/", path("http://h/a/./"))
+    assert_equal("/a/b", path("http://h/a/././b"))
+  end
+
+  def test_split_trailing_single_dot_keeps_slash
+    assert_equal("/a/", path("http://h/a/."))
+    assert_equal("/", path("http://h/."))
+  end
+
+  def test_split_double_dot_segments_remove_previous_segment
+    assert_equal("/a/c", path("http://h/a/b/../c"))
+    assert_equal("/", path("http://h/a/../"))
+    assert_equal("/c", path("http://h/a/b/../../c"))
+  end
+
+  def test_split_trailing_double_dot_keeps_slash
+    assert_equal("/a/", path("http://h/a/b/.."))
+    assert_equal("/", path("http://h/a/.."))
+    assert_equal("/", path("http://h/.."))
+  end
+
+  def test_split_double_dot_does_not_go_above_root
+    assert_equal("/a", path("http://h/../a"))
+    assert_equal("/a", path("http://h/../../a"))
+    assert_equal("/", path("http://h/a/../../.."))
+  end
+
+  def test_split_double_dot_removes_empty_segment
+    assert_equal("/a/", path("http://h/a//.."))
+    assert_equal("//b", path("http://h//a/../b"))
+  end
+
+  def test_split_percent_encoded_single_dot
+    assert_equal("/a/b", path("http://h/a/%2e/b"))
+    assert_equal("/a/b", path("http://h/a/%2E/b"))
+    assert_equal("/a/", path("http://h/a/%2e"))
+  end
+
+  def test_split_percent_encoded_double_dot
+    [".%2e", "%2e.", "%2e%2e", ".%2E", "%2E.", "%2E%2E", "%2e%2E"].each do |dots|
+      assert_equal("/a/c", path("http://h/a/b/#{dots}/c"), dots)
+      assert_equal("/a/", path("http://h/a/b/#{dots}"), dots)
+    end
+  end
+
+  def test_split_segments_that_only_resemble_dots_are_kept
+    ["...", "a.", ".a", "..a", "a..", "%2e%2e%2e", "%2", "%2ex", "%2f", ". ", "%252e"].each do |segment|
+      assert_equal("/#{segment}/b", path("http://h/#{segment}/b"), segment)
+    end
+  end
+
+  def test_split_dot_segments_with_backslash_in_special_url
+    assert_equal("/b", path("http://h/a\\..\\b"))
+    assert_equal("/a/", path("http://h/a\\."))
+  end
+
+  def test_split_dot_segments_before_query_and_fragment
+    assert_equal(["/", "q"], split("http://h/a/..?q").values_at(PATH, QUERY))
+    assert_equal(["/a/", "f"], split("http://h/a/.#f").values_at(PATH, FRAGMENT))
+    assert_equal(["/a/", "q"], split("http://h/a/%2e?q").values_at(PATH, QUERY))
+  end
+
+  def test_split_dot_segments_in_every_special_scheme
+    %w[https ws wss ftp].each do |scheme|
+      assert_equal("/b", path("#{scheme}://h/a/../b"), scheme)
+      assert_equal("/", path("#{scheme}://h"), scheme)
+    end
+  end
+
+  def test_split_non_special_empty_path_stays_empty
+    assert_equal("", path("foo://h"))
+    assert_equal("", path("foo://h?q"))
+    assert_equal("/", path("foo://h/"))
+  end
+
+  def test_split_non_special_dot_segments
+    assert_equal("/b", path("foo://h/a/../b"))
+    assert_equal("/a/b", path("foo:/a/./b"))
+    assert_equal("/", path("foo:/a/.."))
+    assert_equal("/a/", path("foo:/a/."))
+    assert_equal("/b", path("foo:/%2e%2e/b"))
+  end
+
+  def test_split_non_special_does_not_treat_backslash_as_separator
+    assert_equal("/a\\..\\b", path("foo://h/a\\..\\b"))
+    assert_equal("/a/..\\b", path("foo://h/a/..\\b"))
+  end
+
+  def test_split_hostless_path_starting_with_two_slashes_gets_dot_prefix
+    assert_equal("/.//p", path("foo:/..//p"))
+    assert_equal("/.//p", path("foo:/.//p"))
+    assert_equal("/.//p", path("foo:/a/..//p"))
+    assert_equal("/.//", path("foo:/.//"))
+  end
+
+  def test_split_no_dot_prefix_when_not_needed
+    assert_equal("/", path("foo:/./"))
+    assert_equal("/p", path("foo:/./p"))
+    assert_equal("//p", path("foo://h/..//p"))
+    assert_equal("//p", path("foo:///..//p"))
+  end
+
+  def test_parse_dot_prefix_round_trips
+    uri = URI::WHATWG_PARSER.parse("foo:/..//p")
+    assert_equal("foo:/.//p", uri.to_s)
+    assert_equal("foo:/.//p", URI::WHATWG_PARSER.parse(uri.to_s).to_s)
+  end
+
+  def test_split_file_path_dot_segments
+    # Interim until the file states (and Windows drive letters) are
+    # implemented.
+    assert_equal("/b", path("file:///a/../b"))
+    assert_equal("/b", path("file:/a/../b"))
+  end
+
+  def test_split_path_in_linear_time
+    pre = ->(n) { "http://h" + "/a/.." * n + "/b" }
+    assert_linear_performance((1..4).map { |i| 10**i }, pre: pre) do |uri|
+      split(uri)
+    end
+  end
+
   # --- host: opaque host ---------------------------------------------
   # https://url.spec.whatwg.org/#concept-opaque-host-parser
 

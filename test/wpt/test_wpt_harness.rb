@@ -149,6 +149,28 @@ class WPT::TestHarness < Test::Unit::TestCase
     assert_equal("?a?b", c["search"])
   end
 
+  def hostless_uri(path)
+    URI::Generic.new("foo", nil, nil, nil, nil, path, nil, nil, nil)
+  end
+
+  def test_components_drops_dot_prefix_of_hostless_path
+    # The URL serializer writes "/." before a hostless path starting with
+    # "//"; pathname does not include it.
+    c = WPT::URLTestData.components(hostless_uri("/.//p"))
+    assert_equal("//p", c["pathname"])
+    assert_equal("foo:/.//p", c["href"])
+  end
+
+  def test_components_keeps_other_dot_paths
+    assert_equal("/./p", WPT::URLTestData.components(hostless_uri("/./p"))["pathname"])
+    assert_equal("/.", WPT::URLTestData.components(hostless_uri("/."))["pathname"])
+  end
+
+  def test_components_keeps_dot_prefix_when_host_is_present
+    uri = URI::Generic.new("foo", nil, "", nil, nil, "/.//p", nil, nil, nil)
+    assert_equal("/.//p", WPT::URLTestData.components(uri)["pathname"])
+  end
+
   def test_components_empty_opaque
     c = WPT::URLTestData.components(opaque_uri(""))
     assert_equal("", c["pathname"])
