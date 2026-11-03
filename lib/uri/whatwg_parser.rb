@@ -114,6 +114,8 @@ module URI
     PERCENT_ENCODED_BYTE = /%[0-9A-Fa-f]{2}/ # :nodoc:
 
     ASCII_DIGITS = /\A[0-9]+\z/ # :nodoc:
+    ASCII_DIGIT = /\A[0-9]\z/ # :nodoc:
+    ASCII_HEX_DIGIT = /\A[0-9A-Fa-f]\z/ # :nodoc:
     IPV4_NUMBER_DIGITS = {
       8 => /\A[0-7]+\z/,
       10 => /\A[0-9]+\z/,
@@ -207,7 +209,7 @@ module URI
     def parse_host(input, special)
       if input.start_with?("[")
         raise InvalidURIError, "unterminated IPv6 address: #{input.dump}" unless input.end_with?("]")
-        return input # IPv6 parsing is not implemented yet.
+        return "[#{serialize_ipv6(parse_ipv6(input[1..-2]))}]"
       end
       return parse_opaque_host(input) unless special
 
@@ -277,6 +279,139 @@ module URI
       digits = input.sub(LEADING_ZEROS, "")
       return 2**32 if digits.size > IPV4_NUMBER_MAX_DIGITS
       digits.to_i(radix)
+    end
+
+    # IPv6 parser. Follows the standard's algorithm step by step, reading
+    # +input+ one code point at a time with +pointer+.
+    def parse_ipv6(input)
+      failure = -> { raise InvalidURIError, "invalid IPv6 address: #{"[#{input}]".dump}" }
+      failure.() unless input.ascii_only?
+
+      address = [0] * 8
+      piece_index = 0
+      compress = nil
+      pointer = 0
+      c = -> { input[pointer] }
+
+      if c.() == ":"
+        failure.() unless input[pointer + 1] == ":"
+        pointer += 2
+        piece_index += 1
+        compress = piece_index
+      end
+
+      while c.()
+        failure.() if piece_index == 8
+
+        if c.() == ":"
+          failure.() if compress
+          pointer += 1
+          piece_index += 1
+          compress = piece_index
+          next
+        end
+
+        value = length = 0
+        while length < 4 && c.()&.match?(ASCII_HEX_DIGIT)
+          value = value * 0x10 + c.().hex
+          pointer += 1
+          length += 1
+        end
+
+        if c.() == "."
+          failure.() if length == 0
+          pointer -= length
+          failure.() if piece_index > 6
+
+          numbers_seen = 0
+          while c.()
+            ipv4_piece = nil
+            if numbers_seen > 0
+              failure.() unless c.() == "." && numbers_seen < 4
+              pointer += 1
+            end
+            failure.() unless c.()&.match?(ASCII_DIGIT)
+            while c.()&.match?(ASCII_DIGIT)
+              number = c.().to_i
+              if ipv4_piece.nil?
+                ipv4_piece = number
+              elsif ipv4_piece == 0
+                failure.()
+              else
+                ipv4_piece = ipv4_piece * 10 + number
+              end
+              failure.() if ipv4_piece > 255
+              pointer += 1
+            end
+            address[piece_index] = address[piece_index] * 0x100 + ipv4_piece
+            numbers_seen += 1
+            piece_index += 1 if numbers_seen == 2 || numbers_seen == 4
+          end
+          failure.() unless numbers_seen == 4
+          break
+        elsif c.() == ":"
+          pointer += 1
+          failure.() unless c.()
+        elsif c.()
+          failure.()
+        end
+
+        address[piece_index] = value
+        piece_index += 1
+      end
+
+      if compress
+        swaps = piece_index - compress
+        piece_index = 7
+        while piece_index != 0 && swaps > 0
+          address[piece_index], address[compress + swaps - 1] = address[compress + swaps - 1], address[piece_index]
+          piece_index -= 1
+          swaps -= 1
+        end
+      elsif piece_index != 8
+        failure.()
+      end
+
+      address
+    end
+
+    # IPv6 serializer (without the surrounding brackets): the first
+    # longest run of two or more zero pieces is written as "::".
+    def serialize_ipv6(address)
+      compress = longest_zero_run(address)
+      output = +""
+      ignore0 = false
+      address.each_with_index do |piece, piece_index|
+        next if ignore0 && piece == 0
+        ignore0 = false
+        if compress == piece_index
+          output << (piece_index == 0 ? "::" : ":")
+          ignore0 = true
+          next
+        end
+        output << piece.to_s(16)
+        output << ":" unless piece_index == 7
+      end
+      output
+    end
+
+    # Index of the first longest run of two or more zero pieces, or nil.
+    def longest_zero_run(address)
+      best = nil
+      best_length = 1
+      run_start = nil
+      (address + [nil]).each_with_index do |piece, i|
+        if piece == 0
+          run_start ||= i
+        elsif run_start
+          if i - run_start > best_length
+            best = run_start
+            best_length = i - run_start
+          end
+          run_start = nil
+        end
+      end
+      best
     end
 
     # IPv4 serializer

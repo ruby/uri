@@ -290,11 +290,6 @@
     "reason": "unclassified"
   },
   {
-    "input": "http://[::127.0.0.1.]",
-    "base": "http://example.org/foo/bar",
-    "reason": "unclassified"
-  },
-  {
     "input": "http://[0:0:0:0:0:0:13.1.68.3]",
     "base": "http://example.org/foo/bar",
     "reason": "unclassified"
@@ -326,11 +321,6 @@
   },
   {
     "input": "file://example:test/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "file://[example]/",
     "base": null,
     "reason": "unclassified"
   },
@@ -825,16 +815,6 @@
     "reason": "unclassified"
   },
   {
-    "input": "http://[]",
-    "base": "http://other.com/",
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://[:]",
-    "base": "http://other.com/",
-    "reason": "unclassified"
-  },
-  {
     "input": "http://GOO 　goo.com",
     "base": "http://other.com/",
     "reason": "unclassified"
@@ -986,51 +966,6 @@
   },
   {
     "input": "http://０Ｘｃ０．０２５０．０１",
-    "base": "http://other.com/",
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://[www.google.com]/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://[google.com]",
-    "base": "http://other.com/",
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://[::1.2.3.4x]",
-    "base": "http://other.com/",
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://[::1.2.3.]",
-    "base": "http://other.com/",
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://[::1.2.]",
-    "base": "http://other.com/",
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://[::.1.2]",
-    "base": "http://other.com/",
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://[::1.]",
-    "base": "http://other.com/",
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://[::.1]",
-    "base": "http://other.com/",
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://[::%31]",
     "base": "http://other.com/",
     "reason": "unclassified"
   },
@@ -1735,58 +1670,8 @@
     "reason": "unclassified"
   },
   {
-    "input": "https://[0:1:2:3:4:5:192.0.02.1]/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "https://[192.0.2.1::]/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
     "input": "http://[1:0::]",
     "base": "http://example.net/",
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://[0:1:2:3:4:5:6:7:8]",
-    "base": "http://example.net/",
-    "reason": "unclassified"
-  },
-  {
-    "input": "https://[0::0::0]",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "https://[0:.0]",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "https://[0:0:]",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "https://[0:1:2:3:4:5:6:7.0.0.0.1]",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "https://[0:1.00.0.0.0]",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "https://[0:1.290.0.0.0]",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "https://[0:1.23.23]",
-    "base": null,
     "reason": "unclassified"
   },
   {
@@ -1935,27 +1820,12 @@
     "reason": "unclassified"
   },
   {
-    "input": "non-special://[1:2:0:0:5:0:0:0]/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "non-special://[1:2:0:0:0:0:0:3]/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
     "input": "http://0x7f.0.0.0x7g",
     "base": null,
     "reason": "unclassified"
   },
   {
     "input": "http://0X7F.0.0.0X7G",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://[::127.0.0.0.1]",
     "base": null,
     "reason": "unclassified"
   },
@@ -2275,11 +2145,6 @@
     "reason": "unclassified"
   },
   {
-    "input": "data://[:1]",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
     "input": "javascript://example.com:8080/pathname?search#hash",
     "base": null,
     "reason": "unclassified"
@@ -2291,11 +2156,6 @@
   },
   {
     "input": "javascript://test:test",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "javascript://[:1]",
     "base": null,
     "reason": "unclassified"
   },
@@ -2330,11 +2190,6 @@
     "reason": "unclassified"
   },
   {
-    "input": "intent://[:1]",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
     "input": "urn://example.com:8080/pathname?search#hash",
     "base": null,
     "reason": "unclassified"
@@ -2346,11 +2201,6 @@
   },
   {
     "input": "urn://test:test",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "urn://[:1]",
     "base": null,
     "reason": "unclassified"
   },
@@ -2370,11 +2220,6 @@
     "reason": "unclassified"
   },
   {
-    "input": "turn://[:1]",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
     "input": "stun://example.com:8080/pathname?search#hash",
     "base": null,
     "reason": "unclassified"
@@ -2386,11 +2231,6 @@
   },
   {
     "input": "stun://test:test",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "stun://[:1]",
     "base": null,
     "reason": "unclassified"
   },

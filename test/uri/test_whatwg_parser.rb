@@ -816,6 +816,125 @@ class URI::TestWHATWGParser < Test::Unit::TestCase
     end
   end
 
+  # --- host: IPv6 ---------------------------------------------------
+  # https://url.spec.whatwg.org/#concept-ipv6-parser
+  # https://url.spec.whatwg.org/#concept-ipv6-serializer
+
+  def ipv6(address, scheme = "http")
+    host("#{scheme}://[#{address}]/")
+  end
+
+  def assert_ipv6_failure(*addresses)
+    addresses.each do |address|
+      assert_raise(URI::InvalidURIError, address) { split("http://[#{address}]/") }
+    end
+  end
+
+  def test_split_ipv6_loopback_and_unspecified
+    assert_equal("[::1]", ipv6("::1"))
+    assert_equal("[::1]", ipv6("0:0:0:0:0:0:0:1"))
+    assert_equal("[::]", ipv6("::"))
+    assert_equal("[::]", ipv6("0:0:0:0:0:0:0:0"))
+  end
+
+  def test_split_ipv6_full_address_is_kept
+    assert_equal("[2001:db8:85a3:8d3:1319:8a2e:370:7348]", ipv6("2001:db8:85a3:8d3:1319:8a2e:370:7348"))
+  end
+
+  def test_split_ipv6_is_lowercased_without_leading_zeros
+    assert_equal("[abcd::ef]", ipv6("ABCD::EF"))
+    assert_equal("[1:db8::]", ipv6("0001:0db8::"))
+    assert_equal("[ffff::]", ipv6("FFFF::"))
+  end
+
+  def test_split_ipv6_compression_position
+    assert_equal("[1::]", ipv6("1::"))
+    assert_equal("[::1:2]", ipv6("::1:2"))
+    assert_equal("[1:2::3:4]", ipv6("1:2::3:4"))
+    assert_equal("[::1:2:3:4:5:6]", ipv6("0:0:1:2:3:4:5:6"))
+    assert_equal("[1:2:3:4:5:6::]", ipv6("1:2:3:4:5:6:0:0"))
+  end
+
+  def test_split_ipv6_compresses_longest_zero_run
+    assert_equal("[1:0:0:2::3]", ipv6("1:0:0:2:0:0:0:3"))
+    assert_equal("[1::2:0:0:3]", ipv6("1:0:0:0:2:0:0:3"))
+  end
+
+  def test_split_ipv6_compresses_first_of_equally_long_zero_runs
+    assert_equal("[1::2:0:0:3:4]", ipv6("1:0:0:2:0:0:3:4"))
+  end
+
+  def test_split_ipv6_does_not_compress_single_zero
+    assert_equal("[1:0:2:3:4:5:6:7]", ipv6("1:0:2:3:4:5:6:7"))
+    assert_equal("[1:2:3:4:5:6:7:0]", ipv6("1:2:3:4:5:6:7::"))
+    assert_equal("[0:1:2:3:4:5:6:7]", ipv6("::1:2:3:4:5:6:7"))
+  end
+
+  def test_split_ipv6_piece_boundaries
+    assert_equal("[1:2:3:4:5:6:7:ffff]", ipv6("1:2:3:4:5:6:7:ffff"))
+    assert_ipv6_failure("10000::", "1:2:3:4:5:6:7:10000", "00000::")
+  end
+
+  def test_split_ipv6_piece_count_boundaries
+    # 8 pieces, or fewer with "::".
+    assert_ipv6_failure("1:2:3:4:5:6:7", "1:2:3:4:5:6:7:8:9", "1:2:3:4:5:6:7:8::", "::1:2:3:4:5:6:7:8")
+  end
+
+  def test_split_ipv6_invalid_colons_fail
+    assert_ipv6_failure("", ":", ":1", "1:", "1::2::3", ":::", "::1::", "1:::2", "1:2:3:4:5:6:7:8:")
+  end
+
+  def test_split_ipv6_invalid_characters_fail
+    assert_ipv6_failure("g::", "::1 ", "::1%25eth0", "%3A%3A1", "::-1", "é::")
+  end
+
+  def test_split_ipv6_embedded_ipv4
+    assert_equal("[::ffff:102:304]", ipv6("::ffff:1.2.3.4"))
+    assert_equal("[::102:304]", ipv6("::1.2.3.4"))
+    assert_equal("[1:2:3:4:5:6:102:304]", ipv6("1:2:3:4:5:6:1.2.3.4"))
+    assert_equal("[::]", ipv6("::0.0.0.0"))
+  end
+
+  def test_split_ipv6_embedded_ipv4_number_boundaries
+    assert_equal("[::102:3ff]", ipv6("::1.2.3.255"))
+    assert_equal("[::102:300]", ipv6("::1.2.3.0"))
+    assert_ipv6_failure("::1.2.3.256", "::256.1.2.3")
+  end
+
+  def test_split_ipv6_embedded_ipv4_must_have_four_decimal_parts
+    assert_ipv6_failure("::1.2.3", "::1.2.3.4.5", "::1.2..3", "::.1.2.3", "::1.2.3.", "::1.2.3.4x",
+                        "::a.b.c.d", "::0x1.2.3.4", "::1.2.3.4:5")
+  end
+
+  def test_split_ipv6_embedded_ipv4_rejects_leading_zero
+    assert_ipv6_failure("::1.2.3.04", "::01.2.3.4", "::1.2.3.00")
+  end
+
+  def test_split_ipv6_embedded_ipv4_position
+    # The IPv4 address takes the last two pieces.
+    assert_ipv6_failure("1:2:3:4:5:6:7:1.2.3.4", "1.2.3.4", "1.2.3.4::")
+  end
+
+  def test_split_ipv6_embedded_ipv4_number_too_long_fails
+    # The leading hex piece is re-read as decimal.
+    assert_ipv6_failure("::1234.1.2.3", "::12345.1.2.3")
+  end
+
+  def test_split_ipv6_in_non_special_url
+    assert_equal("[::1]", ipv6("0:0::1", "foo"))
+    assert_raise(URI::InvalidURIError) { split("foo://[x]/") }
+  end
+
+  def test_split_ipv6_with_port
+    assert_equal(["[::1]", "8080"], split("http://[0::1]:8080/").values_at(HOST, PORT))
+  end
+
+  def test_parse_serializes_ipv6_host
+    uri = URI::WHATWG_PARSER.parse("http://[0:0::1]/")
+    assert_equal("http://[::1]/", uri.to_s)
+    assert_equal("::1", uri.hostname)
+  end
+
   # --- host: opaque host ---------------------------------------------
   # https://url.spec.whatwg.org/#concept-opaque-host-parser
 
