@@ -18,12 +18,23 @@ module URI
 
       scheme, rest = parse_scheme(uri)
 
-      if SPECIAL_SCHEMES.key?(scheme)
-        split_hierarchical(scheme, rest)
+      if scheme == "file"
+        # Approximates file state, file slash state and file host state
+        # until they are implemented: exactly two leading "/" or "\\"
+        # start a host, which may be empty.
+        if rest.match?(FILE_SLASHES)
+          split_authority(scheme, rest[2..-1], true, host_required: false)
+        else
+          [scheme, nil, nil, nil, nil, rest, nil, nil, nil]
+        end
+      elsif SPECIAL_SCHEMES.key?(scheme)
+        # special authority slashes state and special authority ignore
+        # slashes state: skip any run of "/" or "\\".
+        split_authority(scheme, rest.sub(SPECIAL_AUTHORITY_SLASHES, ""), true)
       elsif rest.start_with?("/")
         # path or authority state
         if rest.start_with?("//")
-          split_hierarchical(scheme, rest)
+          split_authority(scheme, rest[2..-1], false)
         else
           [scheme, nil, nil, nil, nil, rest, nil, nil, nil]
         end
@@ -88,6 +99,11 @@ module URI
     # ASCII alphanumerics, "+", "-" or ".", up to the first ":".
     SCHEME = /\A[A-Za-z][A-Za-z0-9+\-.]*:/ # :nodoc:
 
+    SPECIAL_AUTHORITY_SLASHES = %r{\A[/\\]*} # :nodoc:
+    FILE_SLASHES = %r{\A[/\\]{2}} # :nodoc:
+    AUTHORITY_END = %r{[/?#]} # :nodoc:
+    SPECIAL_AUTHORITY_END = %r{[/?#\\]} # :nodoc:
+
     NOT_C0_CONTROL_OR_SPACE = /[^\x00-\x20]/ # :nodoc:
     ASCII_TAB_OR_NEWLINE = "\t\n\r" # :nodoc:
 
@@ -120,9 +136,51 @@ module URI
       [scheme.chop.downcase, input[scheme.size..-1]]
     end
 
-    def split_hierarchical(scheme, rest)
-      authority, slash, path = rest.delete_prefix("//").partition("/")
-      [scheme, nil, authority, nil, nil, slash + path, nil, nil, nil]
+    # authority state and host state. +rest+ starts right after the
+    # slashes preceding the authority.
+    def split_authority(scheme, rest, special, host_required: special)
+      authority_end = rest.index(special ? SPECIAL_AUTHORITY_END : AUTHORITY_END) || rest.size
+      authority = rest[0, authority_end]
+      remainder = rest[authority_end..-1]
+
+      userinfo, host_and_port = split_userinfo(authority)
+      host, port = split_host_and_port(host_and_port)
+      raise InvalidURIError, "missing host: #{rest.dump}" if host.empty? && (host_required || port)
+
+      [scheme, userinfo, host, port, nil, remainder, nil, nil, nil]
+    end
+
+    # authority state, on "@": the last "@" ends the userinfo, and every
+    # earlier one is part of it, as "%40". The first ":" separates the
+    # username from the password. Returns the userinfo as the URL
+    # serializer writes it (nil when both parts are empty), and the rest.
+    def split_userinfo(authority)
+      at = authority.rindex("@") or return [nil, authority]
+      host_and_port = authority[at + 1..-1]
+      raise InvalidURIError, "missing host after userinfo: #{authority.dump}" if host_and_port.empty?
+
+      username, _, password = authority[0, at].gsub("@", "%40").partition(":")
+      userinfo =
+        if password.empty?
+          username.empty? ? nil : username
+        else
+          "#{username}:#{password}"
+        end
+      [userinfo, host_and_port]
+    end
+
+    # host state: the first ":" outside "[...]" starts the port.
+    def split_host_and_port(host_and_port)
+      inside_brackets = false
+      host_and_port.each_char.with_index do |c, i|
+        case c
+        when "[" then inside_brackets = true
+        when "]" then inside_brackets = false
+        when ":"
+          return [host_and_port[0, i], host_and_port[i + 1..-1]] unless inside_brackets
+        end
+      end
+      [host_and_port, nil]
     end
 
     def convert_to_uri(uri)

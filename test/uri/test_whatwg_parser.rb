@@ -438,4 +438,164 @@ class URI::TestWHATWGParser < Test::Unit::TestCase
     assert_equal("foo:bar", URI::WHATWG_PARSER.parse("foo:bar").to_s)
     assert_equal("foo:", URI::WHATWG_PARSER.parse("foo:").to_s)
   end
+
+  # --- authority -----------------------------------------------------
+  # https://url.spec.whatwg.org/#special-authority-slashes-state
+  # https://url.spec.whatwg.org/#special-authority-ignore-slashes-state
+  # https://url.spec.whatwg.org/#path-or-authority-state
+  # https://url.spec.whatwg.org/#authority-state
+  # https://url.spec.whatwg.org/#host-state
+
+  USERINFO, HOST, PORT, PATH, OPAQUE = 1, 2, 3, 5, 6
+
+  def test_split_special_authority_ignores_any_number_of_slashes
+    ["http:example.com/", "http:/example.com/", "http://example.com/",
+     "http:///example.com/", "http:////example.com/"].each do |input|
+      assert_equal("example.com", split(input)[HOST], input)
+    end
+  end
+
+  def test_split_special_authority_treats_backslash_as_slash
+    ["http:\\\\example.com/", "http:/\\example.com/", "http:\\/example.com/",
+     "http:\\example.com/"].each do |input|
+      assert_equal("example.com", split(input)[HOST], input)
+    end
+  end
+
+  def test_split_ignoring_slashes_applies_to_every_special_scheme
+    %w[https ws wss ftp].each do |scheme|
+      assert_equal("example.com", split("#{scheme}:example.com/")[HOST], scheme)
+      assert_equal("example.com", split("#{scheme}:\\\\example.com/")[HOST], scheme)
+    end
+  end
+
+  def test_split_non_special_needs_exactly_two_slashes_for_authority
+    assert_equal([nil, "/host/x"], split("foo:/host/x").values_at(HOST, PATH))
+    assert_equal(["", "/x"], split("foo:///x").values_at(HOST, PATH))
+    assert_equal(["host", "/x"], split("foo://host/x").values_at(HOST, PATH))
+  end
+
+  def test_split_non_special_does_not_treat_backslash_as_slash
+    assert_equal([nil, "\\\\host"], split("foo:\\\\host").values_at(HOST, OPAQUE))
+    assert_equal([nil, "/\\host"], split("foo:/\\host").values_at(HOST, PATH))
+  end
+
+  def test_split_special_authority_ends_at_slash_question_hash_or_backslash
+    %w[/ ? # \\].each do |c|
+      assert_equal("host", split("http://host#{c}x")[HOST], c)
+    end
+  end
+
+  def test_split_non_special_authority_ends_at_slash_question_or_hash
+    %w[/ ? #].each do |c|
+      assert_equal("host", split("foo://host#{c}x")[HOST], c)
+    end
+  end
+
+  def test_split_authority_at_end_of_input
+    assert_equal("host", split("http://host")[HOST])
+    assert_equal("host", split("foo://host")[HOST])
+  end
+
+  def test_split_userinfo
+    assert_equal(["user:pass", "host"], split("http://user:pass@host/").values_at(USERINFO, HOST))
+  end
+
+  def test_split_userinfo_username_only
+    assert_equal("user", split("http://user@host/")[USERINFO])
+  end
+
+  def test_split_userinfo_empty_password_is_dropped
+    assert_equal("user", split("http://user:@host/")[USERINFO])
+  end
+
+  def test_split_userinfo_password_only
+    assert_equal(":pass", split("http://:pass@host/")[USERINFO])
+  end
+
+  def test_split_userinfo_empty_is_nil
+    assert_nil(split("http://@host/")[USERINFO])
+    assert_nil(split("http://:@host/")[USERINFO])
+  end
+
+  def test_split_userinfo_splits_at_last_at_sign
+    # Every "@" but the last one belongs to the userinfo, as "%40".
+    assert_equal(["a%40b", "host"], split("http://a@b@host/").values_at(USERINFO, HOST))
+    assert_equal("a%40b%40c", split("http://a@b@c@host/")[USERINFO])
+  end
+
+  def test_split_userinfo_splits_password_at_first_colon
+    assert_equal("a%40b:c", split("http://a@b:c@host/")[USERINFO])
+  end
+
+  def test_split_userinfo_in_non_special_url
+    assert_equal(["user:pass", "host"], split("foo://user:pass@host/").values_at(USERINFO, HOST))
+  end
+
+  def test_split_at_sign_after_authority_is_not_userinfo
+    ["http://host/a@b", "http://host?a@b", "http://host#a@b"].each do |input|
+      assert_equal([nil, "host"], split(input).values_at(USERINFO, HOST), input)
+    end
+  end
+
+  def test_split_backslash_ends_special_authority_before_at_sign
+    assert_equal([nil, "user"], split("http://user\\@host/").values_at(USERINFO, HOST))
+  end
+
+  def test_split_host_and_port
+    assert_equal(["host", "8080"], split("http://host:8080/").values_at(HOST, PORT))
+    assert_equal(["host", "8080"], split("http://u:p@host:8080/").values_at(HOST, PORT))
+  end
+
+  def test_split_without_port
+    assert_nil(split("http://host/")[PORT])
+  end
+
+  def test_split_colon_inside_brackets_is_not_port_delimiter
+    assert_equal(["[::1]", "8080"], split("http://[::1]:8080/").values_at(HOST, PORT))
+    assert_equal(["[::1]", nil], split("http://[::1]/").values_at(HOST, PORT))
+  end
+
+  def test_split_brackets_in_userinfo_do_not_affect_port
+    assert_equal(["u[", "host", "80"], split("http://u[@host:80/").values_at(USERINFO, HOST, PORT))
+  end
+
+  def test_split_special_url_needs_host
+    ["http://", "http:///", "http:", "http:/", "http://?q", "http://#f", "http:\\\\"].each do |input|
+      assert_raise(URI::InvalidURIError, input) { split(input) }
+    end
+  end
+
+  def test_split_userinfo_without_host_fails
+    ["http://user@/", "http://@/", "http://user@", "http://u:p@", "foo://@", "foo://user@/"].each do |input|
+      assert_raise(URI::InvalidURIError, input) { split(input) }
+    end
+  end
+
+  def test_split_port_without_host_fails
+    ["http://:80/", "foo://:80/", "http://u@:80/"].each do |input|
+      assert_raise(URI::InvalidURIError, input) { split(input) }
+    end
+  end
+
+  def test_split_non_special_url_may_have_empty_host
+    assert_equal("", split("foo://")[HOST])
+    assert_equal("", split("foo:///")[HOST])
+    assert_equal("", split("foo://?q")[HOST])
+  end
+
+  def test_split_file_host_may_be_empty
+    # Interim behaviour until the file states are implemented.
+    assert_equal(["", "/tmp/a"], split("file:///tmp/a").values_at(HOST, PATH))
+    assert_equal(["host", "/a"], split("file://host/a").values_at(HOST, PATH))
+    assert_equal(["host", "/a"], split("file:\\\\host/a").values_at(HOST, PATH))
+    assert_equal([nil, "/a"], split("file:/a").values_at(HOST, PATH))
+  end
+
+  def test_split_authority_in_linear_time
+    pre = ->(n) { "http:" + "/" * n + "a@" * n + "host/" }
+    assert_linear_performance((1..4).map { |i| 10**i }, pre: pre) do |uri|
+      split(uri)
+    end
+  end
 end
