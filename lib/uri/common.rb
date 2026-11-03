@@ -22,8 +22,29 @@ module URI
   RFC3986_PARSER = RFC3986_Parser.new
   Ractor.make_shareable(RFC3986_PARSER) if defined?(Ractor)
 
-  # The parser instance for the WHATWG URL Standard. It is not the default;
-  # switch to it with <tt>URI.parser = URI::WHATWG_PARSER</tt>.
+  # The parser instance for the WHATWG URL Standard
+  # (https://url.spec.whatwg.org/), which browsers follow. It is not the
+  # default; use it directly, or switch to it with
+  # <tt>URI.parser = URI::WHATWG_PARSER</tt>.
+  #
+  #   URI::WHATWG_PARSER.parse("HTTP://EXAMPLE.com:80/a/../b c")
+  #   # => #<URI::HTTP http://example.com/b%20c>
+  #   URI::WHATWG_PARSER.parse("http://0x7f.1/")
+  #   # => #<URI::HTTP http://127.0.0.1/>
+  #
+  # A relative reference is only meaningful against a base URL, so it is
+  # resolved with #join or URI::Generic#merge rather than parsed alone:
+  #
+  #   URI::WHATWG_PARSER.join("http://example.com/a/b", "../c")
+  #   # => #<URI::HTTP http://example.com/c>
+  #   URI::WHATWG_PARSER.parse("http://example.com/a") + "b"
+  #   # => #<URI::HTTP http://example.com/b>
+  #   URI::WHATWG_PARSER.parse("/relative")
+  #   # raises URI::InvalidURIError
+  #
+  # Only http, https, ws, wss and file URLs become instances of their
+  # scheme's class; other schemes become URI::Generic. Domain to ASCII
+  # (IDNA) is not implemented: a non-ASCII domain is kept as is.
   WHATWG_PARSER = WHATWG_Parser.new
   Ractor.make_shareable(WHATWG_PARSER) if defined?(Ractor)
 
