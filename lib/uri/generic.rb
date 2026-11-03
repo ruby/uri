@@ -1152,6 +1152,10 @@ module URI
     #   # => "http://my.example.com/main.rbx?page=1"
     #
     def merge(oth)
+      # The URL Standard resolves a reference while parsing it against a
+      # base, so URI::WHATWG_Parser does the whole merge.
+      return parser.join(self, oth) if parser.is_a?(WHATWG_Parser)
+
       rel = parser.__send__(:convert_to_uri, oth)
 
       if rel.absolute?

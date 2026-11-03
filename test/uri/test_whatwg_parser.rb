@@ -1648,6 +1648,60 @@ class URI::TestWHATWGParser < Test::Unit::TestCase
     assert_equal("http://a/b/c/g", URI.join(RFC3986_BASE, "http:g").to_s)
   end
 
+  def test_merge_resolves_with_whatwg_rules
+    uri = URI::WHATWG_PARSER.parse("http://a/b/c")
+    {
+      "d" => "http://a/b/d",
+      "../x" => "http://a/x",
+      "//h/p" => "http://h/p",
+      "?y" => "http://a/b/c?y",
+      "#f" => "http://a/b/c#f",
+      "http:g" => "http://a/b/g",
+      "\\g" => "http://a/g",
+      "http://q/" => "http://q/",
+    }.each do |rel, expected|
+      assert_equal(expected, uri.merge(rel).to_s, rel)
+      assert_equal(expected, (uri + rel).to_s, rel)
+    end
+  end
+
+  def test_merge_result_is_bound_to_whatwg_parser
+    uri = URI::WHATWG_PARSER.parse("http://a/b/c") + "d"
+    assert_same(URI::WHATWG_PARSER, uri.parser)
+    assert_equal("http://a/b/e", (uri + "e").to_s)
+  end
+
+  def test_merge_with_uri_object
+    uri = URI::WHATWG_PARSER.parse("http://a/b/c")
+    assert_equal("http://a/b/d", uri.merge(URI::RFC3986_PARSER.parse("d")).to_s)
+  end
+
+  def test_merge_bang
+    uri = URI::WHATWG_PARSER.parse("http://a/b/c")
+    assert_same(uri, uri.merge!("d"))
+    assert_equal("http://a/b/d", uri.to_s)
+    assert_nil(uri.merge!(""))
+  end
+
+  def test_merge_does_not_modify_receiver
+    uri = URI::WHATWG_PARSER.parse("http://a/b/c?q#f")
+    uri + "d"
+    assert_equal("http://a/b/c?q#f", uri.to_s)
+  end
+
+  def test_merge_rejects_non_string
+    assert_raise(ArgumentError) { URI::WHATWG_PARSER.parse("http://a/") + 1 }
+  end
+
+  def test_merge_after_parser_switch
+    URI.parser = URI::WHATWG_PARSER
+    assert_equal("http://a/b/g", (URI("http://a/b/c") + "http:g").to_s)
+  end
+
+  def test_rfc3986_merge_is_unchanged
+    assert_equal("http:g", (URI::RFC3986_PARSER.parse("http://a/b/c") + "http:g").to_s)
+  end
+
   def test_split_without_base_still_fails_for_relative_reference
     assert_raise(URI::InvalidURIError) { split("g") }
   end
