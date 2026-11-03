@@ -2,161 +2,161 @@
   {
     "input": "http://é@é",
     "base": null,
-    "reason": "unclassified"
+    "reason": "non-ASCII domain: domain to ASCII (UTS #46) is not implemented"
   },
   {
     "input": "http://GOO 　goo.com",
     "base": "http://other.com/",
-    "reason": "unclassified"
+    "reason": "non-ASCII domain: domain to ASCII (UTS #46) is not implemented"
   },
   {
     "input": "http://GOO​⁠﻿goo.com",
     "base": "http://other.com/",
-    "reason": "unclassified"
+    "reason": "non-ASCII domain: domain to ASCII (UTS #46) is not implemented"
   },
   {
     "input": "http://www.foo。bar.com",
     "base": "http://other.com/",
-    "reason": "unclassified"
+    "reason": "non-ASCII domain: domain to ASCII (UTS #46) is not implemented"
   },
   {
     "input": "http://﷐zyx.com",
     "base": "http://other.com/",
-    "reason": "unclassified"
+    "reason": "non-ASCII domain: domain to ASCII (UTS #46) is not implemented"
   },
   {
     "input": "http://%ef%b7%90zyx.com",
     "base": "http://other.com/",
-    "reason": "unclassified"
+    "reason": "non-ASCII domain: domain to ASCII (UTS #46) is not implemented"
   },
   {
     "input": "https://�",
     "base": null,
-    "reason": "unclassified"
+    "reason": "non-ASCII domain: domain to ASCII (UTS #46) is not implemented"
   },
   {
     "input": "https://%EF%BF%BD",
     "base": null,
-    "reason": "unclassified"
+    "reason": "non-ASCII domain: domain to ASCII (UTS #46) is not implemented"
   },
   {
     "input": "http://Ｇｏ.com",
     "base": "http://other.com/",
-    "reason": "unclassified"
+    "reason": "non-ASCII domain: domain to ASCII (UTS #46) is not implemented"
   },
   {
     "input": "http://％４１.com",
     "base": "http://other.com/",
-    "reason": "unclassified"
+    "reason": "non-ASCII domain: domain to ASCII (UTS #46) is not implemented"
   },
   {
     "input": "http://%ef%bc%85%ef%bc%94%ef%bc%91.com",
     "base": "http://other.com/",
-    "reason": "unclassified"
+    "reason": "non-ASCII domain: domain to ASCII (UTS #46) is not implemented"
   },
   {
     "input": "http://％００.com",
     "base": "http://other.com/",
-    "reason": "unclassified"
+    "reason": "non-ASCII domain: domain to ASCII (UTS #46) is not implemented"
   },
   {
     "input": "http://%ef%bc%85%ef%bc%90%ef%bc%90.com",
     "base": "http://other.com/",
-    "reason": "unclassified"
+    "reason": "non-ASCII domain: domain to ASCII (UTS #46) is not implemented"
   },
   {
     "input": "http://你好你好",
     "base": "http://other.com/",
-    "reason": "unclassified"
+    "reason": "non-ASCII domain: domain to ASCII (UTS #46) is not implemented"
   },
   {
     "input": "https://faß.ExAmPlE/",
     "base": null,
-    "reason": "unclassified"
+    "reason": "non-ASCII domain: domain to ASCII (UTS #46) is not implemented"
   },
   {
     "input": "http://０Ｘｃ０．０２５０．０１",
     "base": "http://other.com/",
-    "reason": "unclassified"
+    "reason": "non-ASCII domain: domain to ASCII (UTS #46) is not implemented"
   },
   {
     "input": "ftp://example.com%80/",
     "base": null,
-    "reason": "unclassified"
+    "reason": "non-ASCII domain: domain to ASCII (UTS #46) is not implemented"
   },
   {
     "input": "ftp://example.com%A0/",
     "base": null,
-    "reason": "unclassified"
+    "reason": "non-ASCII domain: domain to ASCII (UTS #46) is not implemented"
   },
   {
     "input": "https://example.com%80/",
     "base": null,
-    "reason": "unclassified"
+    "reason": "non-ASCII domain: domain to ASCII (UTS #46) is not implemented"
   },
   {
     "input": "https://example.com%A0/",
     "base": null,
-    "reason": "unclassified"
+    "reason": "non-ASCII domain: domain to ASCII (UTS #46) is not implemented"
   },
   {
     "input": "ftp://%e2%98%83",
     "base": null,
-    "reason": "unclassified"
+    "reason": "non-ASCII domain: domain to ASCII (UTS #46) is not implemented"
   },
   {
     "input": "https://%e2%98%83",
     "base": null,
-    "reason": "unclassified"
+    "reason": "non-ASCII domain: domain to ASCII (UTS #46) is not implemented"
   },
   {
     "input": "file://a­b/p",
     "base": null,
-    "reason": "unclassified"
+    "reason": "non-ASCII domain: domain to ASCII (UTS #46) is not implemented"
   },
   {
     "input": "file://a%C2%ADb/p",
     "base": null,
-    "reason": "unclassified"
+    "reason": "non-ASCII domain: domain to ASCII (UTS #46) is not implemented"
   },
   {
     "input": "file://loC𝐀𝐋𝐇𝐨𝐬𝐭/usr/bin",
     "base": null,
-    "reason": "unclassified"
+    "reason": "non-ASCII domain: domain to ASCII (UTS #46) is not implemented"
   },
   {
     "input": "file://­/p",
     "base": null,
-    "reason": "unclassified"
+    "reason": "non-ASCII domain: domain to ASCII (UTS #46) is not implemented"
   },
   {
     "input": "file://%C2%AD/p",
     "base": null,
-    "reason": "unclassified"
+    "reason": "non-ASCII domain: domain to ASCII (UTS #46) is not implemented"
   },
   {
     "input": "http://💩.123/",
     "base": null,
-    "reason": "unclassified"
+    "reason": "non-ASCII domain: domain to ASCII (UTS #46) is not implemented"
   },
   {
     "input": "https://￿y",
     "base": null,
-    "reason": "unclassified"
+    "reason": "non-ASCII domain: domain to ASCII (UTS #46) is not implemented"
   },
   {
     "input": "https://a%C2%ADb/",
     "base": null,
-    "reason": "unclassified"
+    "reason": "non-ASCII domain: domain to ASCII (UTS #46) is not implemented"
   },
   {
     "input": "https://­/",
     "base": null,
-    "reason": "unclassified"
+    "reason": "non-ASCII domain: domain to ASCII (UTS #46) is not implemented"
   },
   {
     "input": "https://%C2%AD/",
     "base": null,
-    "reason": "unclassified"
+    "reason": "non-ASCII domain: domain to ASCII (UTS #46) is not implemented"
   }
 ]
