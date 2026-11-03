@@ -867,6 +867,24 @@ module URI
     end
 
     #
+    # == Args
+    #
+    # +v+::
+    #    String
+    #
+    # == Description
+    #
+    # Protected setter for the query component +v+, without the escaping
+    # done by #query=.
+    #
+    # See also URI::Generic.query=.
+    #
+    def set_query(v)
+      @query = v
+    end
+    protected :set_query
+
+    #
     # Checks the opaque +v+ component for RFC2396 compliance and
     # against the +parser+ Regexp for :OPAQUE.
     #

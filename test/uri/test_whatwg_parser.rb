@@ -1655,6 +1655,35 @@ class URI::TestWHATWGParser < Test::Unit::TestCase
     assert_raise(URI::InvalidURIError) { split("g") }
   end
 
+  # --- building URI objects -----------------------------------------
+  # URI::Generic#query= re-escapes the query by RFC 3986 rules; the URL
+  # Standard's query must reach the URI object unchanged.
+
+  def test_parse_keeps_query_characters_rfc3986_would_escape
+    assert_equal("'", URI::WHATWG_PARSER.parse("foo://h/?'").query)
+    assert_equal("`{}", URI::WHATWG_PARSER.parse("http://h/?`{}").query)
+    assert_equal("http://h/?`{}|^", URI::WHATWG_PARSER.parse("http://h/?`{}|^").to_s)
+  end
+
+  def test_parse_keeps_stray_percent_sign_in_query
+    assert_equal("%GH", URI::WHATWG_PARSER.parse("http://h/?%GH").query)
+    assert_equal("a%", URI::WHATWG_PARSER.parse("http://h/?a%").query)
+    assert_equal("http://h/?%zz", URI::WHATWG_PARSER.parse("http://h/?%zz").to_s)
+  end
+
+  def test_join_keeps_query_unchanged
+    assert_equal("%GH'", URI::WHATWG_PARSER.join("foo://h/", "?%GH'").query)
+  end
+
+  def test_parse_without_query_has_nil_query
+    assert_nil(URI::WHATWG_PARSER.parse("http://h/").query)
+    assert_equal("", URI::WHATWG_PARSER.parse("http://h/?").query)
+  end
+
+  def test_rfc3986_parser_still_rejects_stray_percent_in_query
+    assert_raise(URI::InvalidURIError) { URI::RFC3986_PARSER.parse("http://h/?%GH") }
+  end
+
   # --- host: opaque host ---------------------------------------------
   # https://url.spec.whatwg.org/#concept-opaque-host-parser
 

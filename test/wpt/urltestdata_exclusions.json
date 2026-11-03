@@ -185,16 +185,6 @@
     "reason": "unclassified"
   },
   {
-    "input": "http://`{}:`{}@h/`{}?`{}",
-    "base": "http://doesnotmatter/",
-    "reason": "unclassified"
-  },
-  {
-    "input": "notspecial://host/?'",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
     "input": "mailto:/../",
     "base": null,
     "reason": "unclassified"
@@ -390,11 +380,6 @@
     "reason": "unclassified"
   },
   {
-    "input": "http://example.org/test?%GH",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
     "input": "file://a­b/p",
     "base": null,
     "reason": "unclassified"
@@ -416,16 +401,6 @@
   },
   {
     "input": "file://%C2%AD/p",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "foo://host/dir/? !\"$%&'()*+,-./:;<=>?@[\\]^_`{|}~",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "wss://host/dir/? !\"$%&'()*+,-./:;<=>?@[\\]^_`{|}~",
     "base": null,
     "reason": "unclassified"
   },

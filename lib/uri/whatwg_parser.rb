@@ -23,7 +23,7 @@ module URI
     end
 
     def parse(uri) # :nodoc:
-      URI.for(*split(uri), self)
+      build(split(uri))
     end
 
     # Resolves each of +uris+ after the first against the result so far,
@@ -32,7 +32,7 @@ module URI
       uris[1..-1].inject(convert_to_uri(uris[0])) do |base, uri|
         reference = uri.is_a?(URI::Generic) ? uri.to_s : String.try_convert(uri)
         raise ArgumentError, "bad argument (expected URI object or URI string)" unless reference
-        URI.for(*to_components(basic_parse(reference, basic_parse(base.to_s))), self)
+        build(to_components(basic_parse(reference, basic_parse(base.to_s))))
       end
     end
 
@@ -165,6 +165,16 @@ module URI
       url.password = base.password
       url.host = base.host
       url.port = base.port
+    end
+
+    # Creates the URI object for +components+. The query is set
+    # afterwards with URI::Generic#set_query, as the constructor would
+    # re-escape it by RFC 3986 rules with URI::Generic#query=.
+    def build(components)
+      *components, query, fragment = components
+      uri = URI.for(*components, nil, fragment, self)
+      uri.__send__(:set_query, query) if query
+      uri
     end
 
     # The URL record as the components of URI::RFC3986_Parser#split.
