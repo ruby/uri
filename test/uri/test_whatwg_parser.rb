@@ -557,7 +557,7 @@ class URI::TestWHATWGParser < Test::Unit::TestCase
   end
 
   def test_split_brackets_in_userinfo_do_not_affect_port
-    assert_equal(["u[", "host", "8080"], split("http://u[@host:8080/").values_at(USERINFO, HOST, PORT))
+    assert_equal(["u%5B", "host", "8080"], split("http://u[@host:8080/").values_at(USERINFO, HOST, PORT))
   end
 
   def test_split_special_url_needs_host
@@ -1136,9 +1136,11 @@ class URI::TestWHATWGParser < Test::Unit::TestCase
     assert_equal("a", split("foo:a  ")[OPAQUE])
   end
 
-  def test_split_space_in_query_or_fragment_of_opaque_url_is_not_encoded_here
-    assert_equal("a? b", split("foo:a? b")[OPAQUE])
-    assert_equal(" b", split("foo:a# b")[FRAGMENT])
+  def test_split_space_in_query_or_fragment_of_opaque_url_uses_their_encode_sets
+    # The "%20" rule for the opaque path does not apply; the query and
+    # fragment percent-encode sets do.
+    assert_equal("a?%20b", split("foo:a? b")[OPAQUE])
+    assert_equal("%20b", split("foo:a# b")[FRAGMENT])
   end
 
   def test_parse_round_trip_with_query_and_fragment
@@ -1236,7 +1238,7 @@ class URI::TestWHATWGParser < Test::Unit::TestCase
   end
 
   def test_split_segments_that_only_resemble_dots_are_kept
-    ["...", "a.", ".a", "..a", "a..", "%2e%2e%2e", "%2", "%2ex", "%2f", ". ", "%252e"].each do |segment|
+    ["...", "a.", ".a", "..a", "a..", "%2e%2e%2e", "%2", "%2ex", "%2f", "%252e"].each do |segment|
       assert_equal("/#{segment}/b", path("http://h/#{segment}/b"), segment)
     end
   end
@@ -1307,6 +1309,136 @@ class URI::TestWHATWGParser < Test::Unit::TestCase
 
   def test_split_path_in_linear_time
     pre = ->(n) { "http://h" + "/a/.." * n + "/b" }
+    assert_linear_performance((1..4).map { |i| 10**i }, pre: pre) do |uri|
+      split(uri)
+    end
+  end
+
+  # --- percent-encoding ---------------------------------------------
+  # https://url.spec.whatwg.org/#percent-encoded-bytes
+
+  # Printable ASCII other than alphanumerics, including the space.
+  PUNCTUATION = (0x20..0x7E).map(&:chr).grep(/[^A-Za-z0-9]/).freeze
+
+  # Returns the punctuation characters that the block, given "a<c>b",
+  # percent-encodes, checking that each one comes back as "a%XXb".
+  def encoded_characters(component)
+    PUNCTUATION.reject { |c| yield(c) == "a#{c}b" }.each do |c|
+      assert_equal("a%%%02Xb" % c.ord, yield(c), "#{component} #{c.inspect}")
+    end
+  end
+
+  def test_split_fragment_percent_encode_set
+    encoded = encoded_characters("fragment") { |c| split("http://h/#a#{c}b")[FRAGMENT] }
+    assert_equal([" ", '"', "<", ">", "`"], encoded)
+  end
+
+  def test_split_special_query_percent_encode_set
+    # "#" never reaches the query; it starts the fragment.
+    encoded = encoded_characters("query") { |c| c == "#" ? "a#b" : split("http://h/?a#{c}b")[QUERY] }
+    assert_equal([" ", '"', "'", "<", ">"], encoded)
+  end
+
+  def test_split_non_special_query_percent_encode_set
+    encoded = encoded_characters("query") { |c| c == "#" ? "a#b" : split("foo://h/?a#{c}b")[QUERY] }
+    assert_equal([" ", '"', "<", ">"], encoded)
+  end
+
+  def test_split_path_percent_encode_set
+    # "/" separates segments, "?" and "#" end the path; "." and "%" are
+    # never encoded.
+    encoded = encoded_characters("path") do |c|
+      %w[/ ? #].include?(c) ? "a#{c}b" : split("foo://h/a#{c}b")[PATH].delete_prefix("/")
+    end
+    assert_equal([" ", '"', "<", ">", "^", "`", "{", "}"], encoded)
+  end
+
+  def test_split_userinfo_percent_encode_set
+    # "/", "?", "#" end the authority; "@" and ":" are delimiters here.
+    encoded = encoded_characters("userinfo") do |c|
+      %w[/ ? # @ :].include?(c) ? "a#{c}b" : split("foo://a#{c}b@h/")[USERINFO]
+    end
+    assert_equal([" ", '"', ";", "<", "=", ">", "[", "\\", "]", "^", "`", "{", "|", "}"], encoded)
+  end
+
+  def test_split_opaque_path_keeps_printable_ascii
+    PUNCTUATION.each do |c|
+      next if %w[? #].include?(c)
+      opaque = split("foo:a#{c}b")[OPAQUE]
+      assert_equal("a#{c}b", opaque, c.inspect)
+    end
+  end
+
+  def test_split_percent_encodes_c0_controls_and_delete
+    ["\x01", "\x1F", "\x7F"].each do |c|
+      expected = "a%%%02Xb" % c.ord
+      assert_equal("/#{expected}", split("http://h/a#{c}b")[PATH], c.dump)
+      assert_equal(expected, split("http://h/?a#{c}b")[QUERY], c.dump)
+      assert_equal(expected, split("http://h/#a#{c}b")[FRAGMENT], c.dump)
+      assert_equal(expected, split("http://a#{c}b@h/")[USERINFO], c.dump)
+      assert_equal(expected, split("foo:a#{c}b")[OPAQUE], c.dump)
+    end
+  end
+
+  def test_split_percent_encodes_null
+    assert_equal("/a%00b", split("http://h/a\x00b")[PATH])
+    assert_equal("a%00b", split("foo:a\x00b")[OPAQUE])
+  end
+
+  def test_split_percent_encodes_non_ascii_as_utf8
+    {
+      "\u0080" => "%C2%80",
+      "é" => "%C3%A9",
+      "あ" => "%E3%81%82",
+      "\u{1F600}" => "%F0%9F%98%80",
+    }.each do |c, encoded|
+      assert_equal("/#{encoded}", split("http://h/#{c}")[PATH], c)
+      assert_equal(encoded, split("http://h/?#{c}")[QUERY], c)
+      assert_equal(encoded, split("http://h/##{c}")[FRAGMENT], c)
+      assert_equal(encoded, split("http://#{c}@h/")[USERINFO], c)
+      assert_equal(encoded, split("foo:#{c}")[OPAQUE], c)
+    end
+  end
+
+  def test_split_keeps_percent_encoded_and_stray_percent_signs
+    ["%41", "%zz", "%", "%4"].each do |s|
+      assert_equal("/#{s}", split("http://h/#{s}")[PATH], s)
+      assert_equal(s, split("http://h/?#{s}")[QUERY], s)
+      assert_equal(s, split("http://h/##{s}")[FRAGMENT], s)
+      assert_equal(s, split("http://#{s}@h/")[USERINFO], s)
+      assert_equal(s, split("foo:#{s}")[OPAQUE], s)
+    end
+  end
+
+  def test_split_encodes_username_and_password_separately
+    # Only the first ":" separates them; later ones are encoded.
+    assert_equal("u:a%3Ab", split("http://u:a:b@h/")[USERINFO])
+    assert_equal("a%20b:c%20d", split("http://a b:c d@h/")[USERINFO])
+  end
+
+  def test_split_encodes_userinfo_with_at_sign_kept_as_percent_40
+    assert_equal("a%40b%20c", split("http://a@b c@h/")[USERINFO])
+  end
+
+  def test_split_encoded_path_is_not_a_dot_segment
+    assert_equal("/a/.%20/b", path("http://h/a/.%20/b"))
+    assert_equal("/a/.%20/b", path("http://h/a/. /b"))
+    assert_equal("/a/%E3%80%82/b", path("http://h/a/。/b"))
+  end
+
+  def test_split_special_query_quote_differs_from_non_special
+    assert_equal("%27", split("ws://h/?'")[QUERY])
+    assert_equal("'", split("foo:/?'")[QUERY])
+  end
+
+  def test_parse_percent_encoded_round_trip
+    uri = URI::WHATWG_PARSER.parse("http://u s@h/a b?c d#e f")
+    assert_equal("http://u%20s@h/a%20b?c%20d#e%20f", uri.to_s)
+    assert_equal(uri.to_s, URI::WHATWG_PARSER.parse(uri.to_s).to_s)
+  end
+
+  def test_split_percent_encode_in_linear_time
+    pre = ->(n) { "http://h/" + "é" * n + "?" + "é" * n + "#" + "é" * n }
     assert_linear_performance((1..4).map { |i| 10**i }, pre: pre) do |uri|
       split(uri)
     end

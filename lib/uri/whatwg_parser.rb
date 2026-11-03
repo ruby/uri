@@ -21,6 +21,11 @@ module URI
       # every state before the query state at the first "?" before it.
       rest, query, fragment = split_query_and_fragment(rest)
 
+      # query state and fragment state
+      special = SPECIAL_SCHEMES.key?(scheme)
+      query &&= utf8_percent_encode(query, special ? SPECIAL_QUERY_PERCENT_ENCODE_SET : QUERY_PERCENT_ENCODE_SET)
+      fragment &&= utf8_percent_encode(fragment, FRAGMENT_PERCENT_ENCODE_SET)
+
       components = split_before_query(scheme, rest)
       if (opaque = components[6])
         components[6] = opaque_with_query(opaque, query, fragment)
@@ -80,11 +85,13 @@ module URI
       [rest, query, fragment]
     end
 
-    # opaque path state: a space right before "?" or "#" is written as
-    # "%20". The query is kept inside opaque, as URI::RFC3986_Parser
+    # opaque path state: code points in the C0 control percent-encode set
+    # are percent-encoded, and a space right before "?" or "#" is written
+    # as "%20". The query is kept inside opaque, as URI::RFC3986_Parser
     # does, since URI::Generic does not serialize the query of an opaque
     # URI.
     def opaque_with_query(opaque, query, fragment)
+      opaque = utf8_percent_encode(opaque, C0_CONTROL_PERCENT_ENCODE_SET)
       opaque = opaque.sub(TRAILING_SPACE, "%20") if query || fragment
       query ? "#{opaque}?#{query}" : opaque
     end
@@ -142,8 +149,23 @@ module URI
     # https://url.spec.whatwg.org/#forbidden-domain-code-point
     # (forbidden host code points, C0 controls, "%" and U+007F DELETE)
     FORBIDDEN_DOMAIN_CODE_POINT = %r{[\x00-\x20#/:<>?@\[\\\]^|%\x7F]} # :nodoc:
-    # https://url.spec.whatwg.org/#c0-control-percent-encode-set
-    C0_CONTROL_PERCENT_ENCODE_SET = /[^\x20-\x7E]/ # :nodoc:
+    # Percent-encode sets, https://url.spec.whatwg.org/#percent-encoded-bytes.
+    # Each one adds to the previous one; [^\x00-\x7E] is every code point
+    # greater than U+007E.
+    #
+    # C0 controls and code points greater than U+007E
+    C0_CONTROL_PERCENT_ENCODE_SET = /[\x00-\x1F]|[^\x00-\x7E]/ # :nodoc:
+    # + U+0020 SPACE, U+0022 ("), U+003C (<), U+003E (>), U+0060 (`)
+    FRAGMENT_PERCENT_ENCODE_SET = /[\x00-\x20"<>`]|[^\x00-\x7E]/ # :nodoc:
+    # C0 control set + U+0020 SPACE, U+0022 ("), U+0023 (#), U+003C (<), U+003E (>)
+    QUERY_PERCENT_ENCODE_SET = /[\x00-\x20"#<>]|[^\x00-\x7E]/ # :nodoc:
+    # query set + U+0027 (')
+    SPECIAL_QUERY_PERCENT_ENCODE_SET = /[\x00-\x20"#<>']|[^\x00-\x7E]/ # :nodoc:
+    # query set + U+003F (?), U+005E (^), U+0060 (`), U+007B ({), U+007D (})
+    PATH_PERCENT_ENCODE_SET = /[\x00-\x20"#<>?^`{}]|[^\x00-\x7E]/ # :nodoc:
+    # path set + U+002F (/), U+003A (:), U+003B (;), U+003D (=), U+0040 (@),
+    # U+005B ([) to U+005E (^), U+007C (|)
+    USERINFO_PERCENT_ENCODE_SET = %r{[\x00-\x20"#<>?^`{}/:;=@\[\\\]|]|[^\x00-\x7E]} # :nodoc:
     PERCENT_ENCODED_BYTE = /%[0-9A-Fa-f]{2}/ # :nodoc:
 
     ASCII_DIGITS = /\A[0-9]+\z/ # :nodoc:
@@ -234,6 +256,7 @@ module URI
       buffers = input.split(separator, -1)
       buffers = [""] if buffers.empty?
       buffers.each_with_index.with_object([]) do |(buffer, i), path|
+        buffer = utf8_percent_encode(buffer, PATH_PERCENT_ENCODE_SET)
         # Whether this segment is ended by the end of the path rather
         # than by a separator.
         last = i == buffers.size - 1
@@ -272,6 +295,8 @@ module URI
       raise InvalidURIError, "missing host after userinfo: #{authority.dump}" if host_and_port.empty?
 
       username, _, password = authority[0, at].gsub("@", "%40").partition(":")
+      username = utf8_percent_encode(username, USERINFO_PERCENT_ENCODE_SET)
+      password = utf8_percent_encode(password, USERINFO_PERCENT_ENCODE_SET)
       userinfo =
         if password.empty?
           username.empty? ? nil : username

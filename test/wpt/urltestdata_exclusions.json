@@ -15,11 +15,6 @@
     "reason": "unclassified"
   },
   {
-    "input": "http://f:21/ b ? d # e ",
-    "base": "http://example.org/foo/bar",
-    "reason": "unclassified"
-  },
-  {
     "input": "",
     "base": "http://example.org/foo/bar",
     "reason": "unclassified"
@@ -130,22 +125,7 @@
     "reason": "unclassified"
   },
   {
-    "input": "http://é@example.com",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
     "input": "http::@c:29",
-    "base": "http://example.org/foo/bar",
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://&a:foo(b]c@d:2/",
-    "base": "http://example.org/foo/bar",
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://::@c@d:2",
     "base": "http://example.org/foo/bar",
     "reason": "unclassified"
   },
@@ -300,36 +280,6 @@
     "reason": "unclassified"
   },
   {
-    "input": "http://example.com/foo%2Â©zbar",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://example.com/foo\t%91",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://example.com/你好你好",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://example.com/‥/foo",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://example.com/﻿/foo",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://example.com/‮/foo/‭/bar",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
     "input": "ftp://foo:21/",
     "base": null,
     "reason": "unclassified"
@@ -450,11 +400,6 @@
     "reason": "unclassified"
   },
   {
-    "input": "https://x/�?�#�",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
     "input": "http://Ｇｏ.com",
     "base": "http://other.com/",
     "reason": "unclassified"
@@ -492,26 +437,6 @@
   {
     "input": "http://０Ｘｃ０．０２５０．０１",
     "base": "http://other.com/",
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://foo:💩@example.com/bar",
-    "base": "http://other.com/",
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://😀x@host/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://a:😀x@host/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://😀@host/",
-    "base": null,
     "reason": "unclassified"
   },
   {
@@ -665,11 +590,6 @@
     "reason": "unclassified"
   },
   {
-    "input": "wow:￿",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
     "input": "ftp://example.com%80/",
     "base": null,
     "reason": "unclassified"
@@ -712,26 +632,6 @@
   {
     "input": "http:",
     "base": "http://example.org/foo/bar",
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://foo.bar/baz?qux#foo\"bar",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://foo.bar/baz?qux#foo<bar",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://foo.bar/baz?qux#foo>bar",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://foo.bar/baz?qux#foo`bar",
-    "base": null,
     "reason": "unclassified"
   },
   {
@@ -1120,51 +1020,6 @@
     "reason": "unclassified"
   },
   {
-    "input": "non-special:cannot-be-a-base-url-\u0000\u0001\u001f\u001e~",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "https://www.example.com/path{path.html?query'=query#fragment<fragment",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "https://user:pass[@foo/bar",
-    "base": "http://example.org",
-    "reason": "unclassified"
-  },
-  {
-    "input": "foo:// !\"$%&'()*+,-.;<=>@[\\]^_`{|}~@host/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "wss:// !\"$%&'()*+,-.;<=>@[]^_`{|}~@host/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "foo://joe: !\"$%&'()*+,-.:;<=>@[\\]^_`{|}~@host/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "wss://joe: !\"$%&'()*+,-.:;<=>@[]^_`{|}~@host/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "foo://host/ !\"$%&'()*+,-./:;<=>@[\\]^_`{|}~",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "wss://host/ !\"$%&'()*+,-./:;<=>@[\\]^_`{|}~",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
     "input": "foo://host/dir/? !\"$%&'()*+,-./:;<=>?@[\\]^_`{|}~",
     "base": null,
     "reason": "unclassified"
@@ -1175,67 +1030,12 @@
     "reason": "unclassified"
   },
   {
-    "input": "foo://host/dir/# !\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "wss://host/dir/# !\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
     "input": "http://💩.123/",
     "base": null,
     "reason": "unclassified"
   },
   {
-    "input": "https://x/\u0000y",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
     "input": "https://￿y",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "https://x/￿y",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "non-special:\u0000y",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "non-special:x/\u0000y",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "non-special:x/?\u0000y",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "non-special:￿y",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "non-special:x/￿y",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "non-special:x/?￿y",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "https://example.com/\"quoted\"",
     "base": null,
     "reason": "unclassified"
   },
@@ -1337,26 +1137,6 @@
   {
     "input": "\\\\a",
     "base": "foo://foo/a",
-    "reason": "unclassified"
-  },
-  {
-    "input": "data:text/plain,test#<foo> <bar>",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "about:blank#<foo> <bar>",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "data:text/plain,test#\u0000\u0001\t\n\r\u001f !\"#$%&'()*+,-./09:;<=>?@AZ[\\]^_`az{|}~Éé",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "about:blank#\u0000\u0001\t\n\r\u001f !\"#$%&'()*+,-./09:;<=>?@AZ[\\]^_`az{|}~Éé",
-    "base": null,
     "reason": "unclassified"
   }
 ]
