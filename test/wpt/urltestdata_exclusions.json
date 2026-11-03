@@ -1,157 +1,7 @@
 [
   {
-    "input": "http:foo.com",
-    "base": "http://example.org/foo/bar",
-    "reason": "unclassified"
-  },
-  {
-    "input": "\t   :foo.com   \n",
-    "base": "http://example.org/foo/bar",
-    "reason": "unclassified"
-  },
-  {
-    "input": " foo.com  ",
-    "base": "http://example.org/foo/bar",
-    "reason": "unclassified"
-  },
-  {
-    "input": "",
-    "base": "http://example.org/foo/bar",
-    "reason": "unclassified"
-  },
-  {
-    "input": "  \t",
-    "base": "http://example.org/foo/bar",
-    "reason": "unclassified"
-  },
-  {
-    "input": ":foo.com/",
-    "base": "http://example.org/foo/bar",
-    "reason": "unclassified"
-  },
-  {
-    "input": ":foo.com\\",
-    "base": "http://example.org/foo/bar",
-    "reason": "unclassified"
-  },
-  {
-    "input": ":",
-    "base": "http://example.org/foo/bar",
-    "reason": "unclassified"
-  },
-  {
-    "input": ":a",
-    "base": "http://example.org/foo/bar",
-    "reason": "unclassified"
-  },
-  {
-    "input": ":/",
-    "base": "http://example.org/foo/bar",
-    "reason": "unclassified"
-  },
-  {
-    "input": ":\\",
-    "base": "http://example.org/foo/bar",
-    "reason": "unclassified"
-  },
-  {
-    "input": ":#",
-    "base": "http://example.org/foo/bar",
-    "reason": "unclassified"
-  },
-  {
-    "input": "#",
-    "base": "http://example.org/foo/bar",
-    "reason": "unclassified"
-  },
-  {
-    "input": "#/",
-    "base": "http://example.org/foo/bar",
-    "reason": "unclassified"
-  },
-  {
-    "input": "#\\",
-    "base": "http://example.org/foo/bar",
-    "reason": "unclassified"
-  },
-  {
-    "input": "#;?",
-    "base": "http://example.org/foo/bar",
-    "reason": "unclassified"
-  },
-  {
-    "input": "?",
-    "base": "http://example.org/foo/bar",
-    "reason": "unclassified"
-  },
-  {
-    "input": "/",
-    "base": "http://example.org/foo/bar",
-    "reason": "unclassified"
-  },
-  {
-    "input": ":23",
-    "base": "http://example.org/foo/bar",
-    "reason": "unclassified"
-  },
-  {
-    "input": "/:23",
-    "base": "http://example.org/foo/bar",
-    "reason": "unclassified"
-  },
-  {
-    "input": "\\x",
-    "base": "http://example.org/foo/bar",
-    "reason": "unclassified"
-  },
-  {
-    "input": "\\\\x\\hello",
-    "base": "http://example.org/foo/bar",
-    "reason": "unclassified"
-  },
-  {
-    "input": "::",
-    "base": "http://example.org/foo/bar",
-    "reason": "unclassified"
-  },
-  {
-    "input": "::23",
-    "base": "http://example.org/foo/bar",
-    "reason": "unclassified"
-  },
-  {
     "input": "http://é@é",
     "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http::@c:29",
-    "base": "http://example.org/foo/bar",
-    "reason": "unclassified"
-  },
-  {
-    "input": "//foo/bar",
-    "base": "http://example.org/foo/bar",
-    "reason": "unclassified"
-  },
-  {
-    "input": "[61:24:74]:98",
-    "base": "http://example.org/foo/bar",
-    "reason": "unclassified"
-  },
-  {
-    "input": "http:[61:27]/:foo",
-    "base": "http://example.org/foo/bar",
-    "reason": "unclassified"
-  },
-  {
-    "input": "http:/example.com/",
-    "base": "http://example.org/foo/bar",
-    "reason": "unclassified"
-  },
-  {
-    "input": "http:/",
-    "base": "http://example.com/",
     "reason": "unclassified"
   },
   {
@@ -170,42 +20,12 @@
     "reason": "unclassified"
   },
   {
-    "input": "http:example.com/",
-    "base": "http://example.org/foo/bar",
-    "reason": "unclassified"
-  },
-  {
     "input": "ftp:example.com/",
     "base": "http://example.org/foo/bar",
     "reason": "unclassified"
   },
   {
     "input": "mailto:example.com/",
-    "base": "http://example.org/foo/bar",
-    "reason": "unclassified"
-  },
-  {
-    "input": "/a/b/c",
-    "base": "http://example.org/foo/bar",
-    "reason": "unclassified"
-  },
-  {
-    "input": "/a/ /c",
-    "base": "http://example.org/foo/bar",
-    "reason": "unclassified"
-  },
-  {
-    "input": "/a%2fc",
-    "base": "http://example.org/foo/bar",
-    "reason": "unclassified"
-  },
-  {
-    "input": "/a/%2f/c",
-    "base": "http://example.org/foo/bar",
-    "reason": "unclassified"
-  },
-  {
-    "input": "#β",
     "base": "http://example.org/foo/bar",
     "reason": "unclassified"
   },
@@ -230,21 +50,6 @@
     "reason": "unclassified"
   },
   {
-    "input": "//server/file",
-    "base": "file:///tmp/mock/path",
-    "reason": "unclassified"
-  },
-  {
-    "input": "\\\\server\\file",
-    "base": "file:///tmp/mock/path",
-    "reason": "unclassified"
-  },
-  {
-    "input": "/\\server/file",
-    "base": "file:///tmp/mock/path",
-    "reason": "unclassified"
-  },
-  {
     "input": "//",
     "base": "file:///tmp/mock/path",
     "reason": "unclassified"
@@ -256,11 +61,6 @@
   },
   {
     "input": "///test",
-    "base": "file:///tmp/mock/path",
-    "reason": "unclassified"
-  },
-  {
-    "input": "test",
     "base": "file:///tmp/mock/path",
     "reason": "unclassified"
   },
@@ -307,61 +107,6 @@
   {
     "input": "mailto:example.com/",
     "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "/",
-    "base": "http://www.example.com/test",
-    "reason": "unclassified"
-  },
-  {
-    "input": "/test.txt",
-    "base": "http://www.example.com/test",
-    "reason": "unclassified"
-  },
-  {
-    "input": ".",
-    "base": "http://www.example.com/test",
-    "reason": "unclassified"
-  },
-  {
-    "input": "..",
-    "base": "http://www.example.com/test",
-    "reason": "unclassified"
-  },
-  {
-    "input": "test.txt",
-    "base": "http://www.example.com/test",
-    "reason": "unclassified"
-  },
-  {
-    "input": "./test.txt",
-    "base": "http://www.example.com/test",
-    "reason": "unclassified"
-  },
-  {
-    "input": "../test.txt",
-    "base": "http://www.example.com/test",
-    "reason": "unclassified"
-  },
-  {
-    "input": "../aaa/test.txt",
-    "base": "http://www.example.com/test",
-    "reason": "unclassified"
-  },
-  {
-    "input": "../../test.txt",
-    "base": "http://www.example.com/test",
-    "reason": "unclassified"
-  },
-  {
-    "input": "中/test.txt",
-    "base": "http://www.example.com/test",
-    "reason": "unclassified"
-  },
-  {
-    "input": "//www.example2.com",
-    "base": "http://www.example.com/test",
     "reason": "unclassified"
   },
   {
@@ -440,36 +185,6 @@
     "reason": "unclassified"
   },
   {
-    "input": "#",
-    "base": "test:test",
-    "reason": "unclassified"
-  },
-  {
-    "input": "#x",
-    "base": "mailto:x@x.com",
-    "reason": "unclassified"
-  },
-  {
-    "input": "#x",
-    "base": "data:,",
-    "reason": "unclassified"
-  },
-  {
-    "input": "#x",
-    "base": "about:blank",
-    "reason": "unclassified"
-  },
-  {
-    "input": "#x:y",
-    "base": "about:blank",
-    "reason": "unclassified"
-  },
-  {
-    "input": "#",
-    "base": "test:test?test",
-    "reason": "unclassified"
-  },
-  {
     "input": "http://`{}:`{}@h/`{}?`{}",
     "base": "http://doesnotmatter/",
     "reason": "unclassified"
@@ -480,113 +195,8 @@
     "reason": "unclassified"
   },
   {
-    "input": "/some/path",
-    "base": "http://user@example.org/smth",
-    "reason": "unclassified"
-  },
-  {
-    "input": "",
-    "base": "http://user:pass@example.org:21/smth",
-    "reason": "unclassified"
-  },
-  {
-    "input": "/some/path",
-    "base": "http://user:pass@example.org:21/smth",
-    "reason": "unclassified"
-  },
-  {
-    "input": "i",
-    "base": "sc:/pa/pa",
-    "reason": "unclassified"
-  },
-  {
-    "input": "i",
-    "base": "sc://ho/pa",
-    "reason": "unclassified"
-  },
-  {
-    "input": "i",
-    "base": "sc:///pa/pa",
-    "reason": "unclassified"
-  },
-  {
-    "input": "../i",
-    "base": "sc:/pa/pa",
-    "reason": "unclassified"
-  },
-  {
-    "input": "../i",
-    "base": "sc://ho/pa",
-    "reason": "unclassified"
-  },
-  {
-    "input": "../i",
-    "base": "sc:///pa/pa",
-    "reason": "unclassified"
-  },
-  {
-    "input": "/i",
-    "base": "sc:/pa/pa",
-    "reason": "unclassified"
-  },
-  {
-    "input": "/i",
-    "base": "sc://ho/pa",
-    "reason": "unclassified"
-  },
-  {
-    "input": "/i",
-    "base": "sc:///pa/pa",
-    "reason": "unclassified"
-  },
-  {
-    "input": "?i",
-    "base": "sc:/pa/pa",
-    "reason": "unclassified"
-  },
-  {
-    "input": "?i",
-    "base": "sc://ho/pa",
-    "reason": "unclassified"
-  },
-  {
-    "input": "?i",
-    "base": "sc:///pa/pa",
-    "reason": "unclassified"
-  },
-  {
-    "input": "#i",
-    "base": "sc:sd",
-    "reason": "unclassified"
-  },
-  {
-    "input": "#i",
-    "base": "sc:sd/sd",
-    "reason": "unclassified"
-  },
-  {
-    "input": "#i",
-    "base": "sc:/pa/pa",
-    "reason": "unclassified"
-  },
-  {
-    "input": "#i",
-    "base": "sc://ho/pa",
-    "reason": "unclassified"
-  },
-  {
-    "input": "#i",
-    "base": "sc:///pa/pa",
-    "reason": "unclassified"
-  },
-  {
     "input": "mailto:/../",
     "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "x",
-    "base": "sc://ñ",
     "reason": "unclassified"
   },
   {
@@ -620,33 +230,8 @@
     "reason": "unclassified"
   },
   {
-    "input": "?a=b&c=d",
-    "base": "http://example.org/foo/bar",
-    "reason": "unclassified"
-  },
-  {
-    "input": "??a=b&c=d",
-    "base": "http://example.org/foo/bar",
-    "reason": "unclassified"
-  },
-  {
-    "input": "http:",
-    "base": "http://example.org/foo/bar",
-    "reason": "unclassified"
-  },
-  {
-    "input": "pix/submit.gif",
-    "base": "file:///C:/Users/Domenic/Dropbox/GitHub/tmpvar/jsdom/test/level2/html/files/anchor.html",
-    "reason": "unclassified"
-  },
-  {
     "input": "..",
     "base": "file:///C:/",
-    "reason": "unclassified"
-  },
-  {
-    "input": "..",
-    "base": "file:///",
     "reason": "unclassified"
   },
   {
@@ -660,11 +245,6 @@
     "reason": "unclassified"
   },
   {
-    "input": "/",
-    "base": "file://h/a/b",
-    "reason": "unclassified"
-  },
-  {
     "input": "//d:",
     "base": "file:///C:/a/b",
     "reason": "unclassified"
@@ -675,37 +255,12 @@
     "reason": "unclassified"
   },
   {
-    "input": "..",
-    "base": "file:///ab:/",
-    "reason": "unclassified"
-  },
-  {
-    "input": "..",
-    "base": "file:///1:/",
-    "reason": "unclassified"
-  },
-  {
-    "input": "",
-    "base": "file:///test?test#test",
-    "reason": "unclassified"
-  },
-  {
     "input": "file:",
     "base": "file:///test?test#test",
     "reason": "unclassified"
   },
   {
-    "input": "?x",
-    "base": "file:///test?test#test",
-    "reason": "unclassified"
-  },
-  {
     "input": "file:?x",
-    "base": "file:///test?test#test",
-    "reason": "unclassified"
-  },
-  {
-    "input": "#x",
     "base": "file:///test?test#test",
     "reason": "unclassified"
   },
@@ -722,31 +277,6 @@
   {
     "input": "\\//pig",
     "base": "file://lion/",
-    "reason": "unclassified"
-  },
-  {
-    "input": "\\/localhost//pig",
-    "base": "file://lion/",
-    "reason": "unclassified"
-  },
-  {
-    "input": "//localhost//pig",
-    "base": "file://lion/",
-    "reason": "unclassified"
-  },
-  {
-    "input": "/..//localhost//pig",
-    "base": "file://lion/",
-    "reason": "unclassified"
-  },
-  {
-    "input": "/rooibos",
-    "base": "file://tea/",
-    "reason": "unclassified"
-  },
-  {
-    "input": "/?chai",
-    "base": "file://tea/",
     "reason": "unclassified"
   },
   {
@@ -785,33 +315,8 @@
     "reason": "unclassified"
   },
   {
-    "input": "C",
-    "base": "file://host/dir/file",
-    "reason": "unclassified"
-  },
-  {
-    "input": "C|a",
-    "base": "file://host/dir/file",
-    "reason": "unclassified"
-  },
-  {
-    "input": "/c:/foo/bar",
-    "base": "file:///c:/baz/qux",
-    "reason": "unclassified"
-  },
-  {
     "input": "/c|/foo/bar",
     "base": "file:///c:/baz/qux",
-    "reason": "unclassified"
-  },
-  {
-    "input": "/c:/foo/bar",
-    "base": "file://host/path",
-    "reason": "unclassified"
-  },
-  {
-    "input": "..",
-    "base": "abc://x/y/z/C:/",
     "reason": "unclassified"
   },
   {
@@ -821,11 +326,6 @@
   },
   {
     "input": "C|/",
-    "base": "file://host/",
-    "reason": "unclassified"
-  },
-  {
-    "input": "/C:/",
     "base": "file://host/",
     "reason": "unclassified"
   },
@@ -865,11 +365,6 @@
     "reason": "unclassified"
   },
   {
-    "input": "//one/two",
-    "base": "file:///",
-    "reason": "unclassified"
-  },
-  {
     "input": "///one/two",
     "base": "file:///",
     "reason": "unclassified"
@@ -890,103 +385,13 @@
     "reason": "unclassified"
   },
   {
-    "input": "#x",
-    "base": "sc://ñ",
-    "reason": "unclassified"
-  },
-  {
-    "input": "?x",
-    "base": "sc://ñ",
-    "reason": "unclassified"
-  },
-  {
-    "input": "///",
-    "base": "sc://x/",
-    "reason": "unclassified"
-  },
-  {
-    "input": "////",
-    "base": "sc://x/",
-    "reason": "unclassified"
-  },
-  {
-    "input": "////x/",
-    "base": "sc://x/",
-    "reason": "unclassified"
-  },
-  {
     "input": "ldap://localhost:389/ou=People,o=JNDITutorial",
     "base": null,
     "reason": "unclassified"
   },
   {
-    "input": "/.//path",
-    "base": "non-spec:/p",
-    "reason": "unclassified"
-  },
-  {
-    "input": "/..//path",
-    "base": "non-spec:/p",
-    "reason": "unclassified"
-  },
-  {
-    "input": "..//path",
-    "base": "non-spec:/p",
-    "reason": "unclassified"
-  },
-  {
-    "input": "a/..//path",
-    "base": "non-spec:/p",
-    "reason": "unclassified"
-  },
-  {
-    "input": "",
-    "base": "non-spec:/..//p",
-    "reason": "unclassified"
-  },
-  {
-    "input": "path",
-    "base": "non-spec:/..//p",
-    "reason": "unclassified"
-  },
-  {
-    "input": "../path",
-    "base": "non-spec:/.//p",
-    "reason": "unclassified"
-  },
-  {
     "input": "http://example.org/test?%GH",
     "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "test-a-colon-slash.html",
-    "base": "a:/",
-    "reason": "unclassified"
-  },
-  {
-    "input": "test-a-colon-slash-slash.html",
-    "base": "a://",
-    "reason": "unclassified"
-  },
-  {
-    "input": "test-a-colon-slash-b.html",
-    "base": "a:/b",
-    "reason": "unclassified"
-  },
-  {
-    "input": "test-a-colon-slash-slash-b.html",
-    "base": "a://b",
-    "reason": "unclassified"
-  },
-  {
-    "input": "10.0.0.7:8080/foo.html",
-    "base": "file:///some/dir/bar.html",
-    "reason": "unclassified"
-  },
-  {
-    "input": "a!@$*=/foo.html",
-    "base": "file:///some/dir/bar.html",
     "reason": "unclassified"
   },
   {
@@ -1012,11 +417,6 @@
   {
     "input": "file://%C2%AD/p",
     "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "#link",
-    "base": "https://example.org/##link",
     "reason": "unclassified"
   },
   {
@@ -1070,46 +470,6 @@
     "reason": "unclassified"
   },
   {
-    "input": "///test",
-    "base": "http://example.org/",
-    "reason": "unclassified"
-  },
-  {
-    "input": "///\\//\\//test",
-    "base": "http://example.org/",
-    "reason": "unclassified"
-  },
-  {
-    "input": "///example.org/path",
-    "base": "http://example.org/",
-    "reason": "unclassified"
-  },
-  {
-    "input": "///example.org/../path",
-    "base": "http://example.org/",
-    "reason": "unclassified"
-  },
-  {
-    "input": "///example.org/../../",
-    "base": "http://example.org/",
-    "reason": "unclassified"
-  },
-  {
-    "input": "///example.org/../path/../../",
-    "base": "http://example.org/",
-    "reason": "unclassified"
-  },
-  {
-    "input": "///example.org/../path/../../path",
-    "base": "http://example.org/",
-    "reason": "unclassified"
-  },
-  {
-    "input": "/\\/\\//example.org/../path",
-    "base": "http://example.org/",
-    "reason": "unclassified"
-  },
-  {
     "input": "///abcdef/../",
     "base": "file:///",
     "reason": "unclassified"
@@ -1117,26 +477,6 @@
   {
     "input": "/\\//\\/a/../",
     "base": "file:///",
-    "reason": "unclassified"
-  },
-  {
-    "input": "//a/../",
-    "base": "file:///",
-    "reason": "unclassified"
-  },
-  {
-    "input": "\\a",
-    "base": "foo://foo/a",
-    "reason": "unclassified"
-  },
-  {
-    "input": "\\/a",
-    "base": "foo://foo/a",
-    "reason": "unclassified"
-  },
-  {
-    "input": "\\\\a",
-    "base": "foo://foo/a",
     "reason": "unclassified"
   }
 ]

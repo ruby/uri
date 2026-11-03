@@ -1444,6 +1444,217 @@ class URI::TestWHATWGParser < Test::Unit::TestCase
     end
   end
 
+  # --- relative references ------------------------------------------
+  # https://url.spec.whatwg.org/#no-scheme-state
+  # https://url.spec.whatwg.org/#special-relative-or-authority-state
+  # https://url.spec.whatwg.org/#relative-state
+  # https://url.spec.whatwg.org/#relative-slash-state
+
+  RFC3986_BASE = "http://a/b/c/d;p?q"
+
+  def join(*uris)
+    URI::WHATWG_PARSER.join(*uris).to_s
+  end
+
+  def test_join_rfc3986_normal_examples
+    # RFC 3986, 5.4.1, except that "g:h" is left out (another scheme).
+    {
+      "g" => "http://a/b/c/g",
+      "./g" => "http://a/b/c/g",
+      "g/" => "http://a/b/c/g/",
+      "/g" => "http://a/g",
+      "//g" => "http://g/",
+      "?y" => "http://a/b/c/d;p?y",
+      "g?y" => "http://a/b/c/g?y",
+      "#s" => "http://a/b/c/d;p?q#s",
+      "g#s" => "http://a/b/c/g#s",
+      "g?y#s" => "http://a/b/c/g?y#s",
+      ";x" => "http://a/b/c/;x",
+      "g;x" => "http://a/b/c/g;x",
+      "g;x?y#s" => "http://a/b/c/g;x?y#s",
+      "" => "http://a/b/c/d;p?q",
+      "." => "http://a/b/c/",
+      "./" => "http://a/b/c/",
+      ".." => "http://a/b/",
+      "../" => "http://a/b/",
+      "../g" => "http://a/b/g",
+      "../.." => "http://a/",
+      "../../" => "http://a/",
+      "../../g" => "http://a/g",
+    }.each do |rel, expected|
+      assert_equal(expected, join(RFC3986_BASE, rel), rel)
+    end
+  end
+
+  def test_join_rfc3986_abnormal_examples
+    # RFC 3986, 5.4.2. "http:g" differs: the URL Standard resolves a
+    # special scheme equal to the base's as a relative reference.
+    {
+      "../../../g" => "http://a/g",
+      "../../../../g" => "http://a/g",
+      "/./g" => "http://a/g",
+      "/../g" => "http://a/g",
+      "g." => "http://a/b/c/g.",
+      ".g" => "http://a/b/c/.g",
+      "g.." => "http://a/b/c/g..",
+      "..g" => "http://a/b/c/..g",
+      "./../g" => "http://a/b/g",
+      "./g/." => "http://a/b/c/g/",
+      "g/./h" => "http://a/b/c/g/h",
+      "g/../h" => "http://a/b/c/h",
+      "g;x=1/./y" => "http://a/b/c/g;x=1/y",
+      "g;x=1/../y" => "http://a/b/c/y",
+      "g?y/./x" => "http://a/b/c/g?y/./x",
+      "g?y/../x" => "http://a/b/c/g?y/../x",
+      "g#s/./x" => "http://a/b/c/g#s/./x",
+      "g#s/../x" => "http://a/b/c/g#s/../x",
+      "http:g" => "http://a/b/c/g",
+    }.each do |rel, expected|
+      assert_equal(expected, join(RFC3986_BASE, rel), rel)
+    end
+  end
+
+  def test_join_same_special_scheme_is_relative
+    assert_equal("http://a/b/c/g", join(RFC3986_BASE, "HTTP:g"))
+    assert_equal("http://a/g", join(RFC3986_BASE, "http:/g"))
+    assert_equal("http://g/", join(RFC3986_BASE, "http://g"))
+    assert_equal("http://g/", join(RFC3986_BASE, "http:\\\\g"))
+    assert_equal("http://a/b/c/d;p?y", join(RFC3986_BASE, "http:?y"))
+  end
+
+  def test_join_other_special_scheme_is_absolute
+    assert_equal("https://g/", join(RFC3986_BASE, "https:g"))
+    assert_equal("ws://g/", join(RFC3986_BASE, "ws:/g"))
+  end
+
+  def test_join_non_special_scheme_is_absolute
+    assert_equal("g:h", join(RFC3986_BASE, "g:h"))
+    assert_equal("c:/foo", join(RFC3986_BASE, "c:/foo"))
+  end
+
+  def test_join_backslash_in_special_relative_reference
+    assert_equal("http://a/g", join(RFC3986_BASE, "\\g"))
+    assert_equal("http://g/", join(RFC3986_BASE, "\\\\g"))
+    assert_equal("http://g/", join(RFC3986_BASE, "/\\g"))
+    assert_equal("http://g/", join(RFC3986_BASE, "\\/g"))
+    assert_equal("http://a/b/c/g/h", join(RFC3986_BASE, "g\\h"))
+  end
+
+  def test_join_network_path_skips_extra_slashes_for_special
+    assert_equal("http://g/", join(RFC3986_BASE, "///g"))
+    assert_equal("http://u@g:8080/x", join(RFC3986_BASE, "//u@g:8080/x"))
+  end
+
+  def test_join_network_path_without_host_fails_for_special
+    ["//", "///", "\\\\"].each do |rel|
+      assert_raise(URI::InvalidURIError, rel) { join(RFC3986_BASE, rel) }
+    end
+  end
+
+  def test_join_keeps_base_userinfo_and_port
+    assert_equal("http://u:p@a:8080/c", join("http://u:p@a:8080/b", "c"))
+    assert_equal("http://u:p@a:8080/c", join("http://u:p@a:8080/b", "/c"))
+  end
+
+  def test_join_does_not_keep_base_fragment
+    assert_equal("http://a/b", join("http://a/b#f", ""))
+    assert_equal("http://a/b?x", join("http://a/b#f", "?x"))
+    assert_equal("http://a/c", join("http://a/b#f", "c"))
+  end
+
+  def test_join_keeps_base_query_only_without_path_or_query
+    assert_equal("http://a/b?q", join("http://a/b?q", ""))
+    assert_equal("http://a/b?q#f", join("http://a/b?q", "#f"))
+    assert_equal("http://a/b?", join("http://a/b?q", "?"))
+    assert_equal("http://a/c", join("http://a/b?q", "c"))
+    assert_equal("http://a/c", join("http://a/b?q", "/c"))
+  end
+
+  def test_join_empty_query_and_fragment
+    assert_equal("http://a/b/c/d;p?", join(RFC3986_BASE, "?"))
+    assert_equal("http://a/b/c/d;p?q#", join(RFC3986_BASE, "#"))
+  end
+
+  def test_join_preprocesses_relative_reference
+    assert_equal("http://a/b/c/g", join(RFC3986_BASE, " \tg\n "))
+  end
+
+  def test_join_percent_encodes_relative_reference
+    assert_equal("http://a/b/c/a%20b?c%20d#e%20f", join(RFC3986_BASE, "a b?c d#e f"))
+    assert_equal("http://a/b/c/d;p?%27", join(RFC3986_BASE, "?'"))
+  end
+
+  def test_join_non_special_base
+    base = "foo://h/a/b"
+    assert_equal("foo://h/a/c", join(base, "c"))
+    assert_equal("foo://x/y", join(base, "//x/y"))
+    assert_equal("foo://h/c", join(base, "/c"))
+    assert_equal("foo://h/a/", join(base, "."))
+    assert_equal("foo://h/", join(base, "../.."))
+  end
+
+  def test_join_non_special_base_does_not_treat_backslash_as_slash
+    assert_equal("foo://h/\\x", join("foo://h/a/b", "/\\x"))
+    assert_equal("foo://h/a/\\x", join("foo://h/a/b", "\\x"))
+  end
+
+  def test_join_non_special_base_with_empty_host
+    assert_equal("foo:///a/c", join("foo:///a/b", "c"))
+    assert_equal("foo://", join("foo://", ""))
+  end
+
+  def test_join_hostless_base
+    assert_equal("foo:/a/c", join("foo:/a/b", "c"))
+    assert_equal("foo:/.//c", join("foo:/a/b", "..//c"))
+    assert_equal("foo:/c", join("foo:/a/b", "/c"))
+  end
+
+  def test_join_base_with_opaque_path_accepts_only_fragment
+    assert_equal("foo:bar#f", join("foo:bar", "#f"))
+    assert_equal("foo:bar?q#f", join("foo:bar?q", "#f"))
+    assert_equal("foo:bar#", join("foo:bar#x", "#"))
+  end
+
+  def test_join_base_with_opaque_path_rejects_anything_else
+    ["", "x", "?q", "/x", "//x"].each do |rel|
+      assert_raise(URI::InvalidURIError, rel) { join("foo:bar", rel) }
+    end
+  end
+
+  def test_join_with_multiple_references
+    assert_equal("http://a/b/d/e", join("http://a/b/c", "d/", "e"))
+    assert_equal("http://x/z", join("http://a/b", "http://x/y", "z"))
+  end
+
+  def test_join_with_uri_objects
+    base = URI::WHATWG_PARSER.parse("http://a/b/c")
+    assert_equal("http://a/b/d", join(base, "d"))
+    assert_equal("http://x/", join("http://a/", URI::WHATWG_PARSER.parse("http://x/")))
+  end
+
+  def test_join_result_is_bound_to_whatwg_parser
+    assert_same(URI::WHATWG_PARSER, URI::WHATWG_PARSER.join("http://a/b", "c").parser)
+  end
+
+  def test_join_fails_without_absolute_base
+    assert_raise(URI::InvalidURIError) { join("g", "h") }
+    assert_raise(URI::InvalidURIError) { join(URI::RFC3986_PARSER.parse("g"), "h") }
+  end
+
+  def test_join_rejects_non_string_reference
+    assert_raise(ArgumentError) { join("http://a/", nil) }
+    assert_raise(ArgumentError) { join("http://a/", 1) }
+  end
+
+  def test_uri_join_uses_whatwg_parser_after_switch
+    URI.parser = URI::WHATWG_PARSER
+    assert_equal("http://a/b/c/g", URI.join(RFC3986_BASE, "http:g").to_s)
+  end
+
+  def test_split_without_base_still_fails_for_relative_reference
+    assert_raise(URI::InvalidURIError) { split("g") }
+  end
+
   # --- host: opaque host ---------------------------------------------
   # https://url.spec.whatwg.org/#concept-opaque-host-parser
 

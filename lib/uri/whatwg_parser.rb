@@ -26,9 +26,14 @@ module URI
       URI.for(*split(uri), self)
     end
 
+    # Resolves each of +uris+ after the first against the result so far,
+    # as the URL Standard's basic URL parser does with a base URL.
     def join(*uris) # :nodoc:
-      uris[0] = convert_to_uri(uris[0])
-      uris.inject :merge
+      uris[1..-1].inject(convert_to_uri(uris[0])) do |base, uri|
+        reference = uri.is_a?(URI::Generic) ? uri.to_s : String.try_convert(uri)
+        raise ArgumentError, "bad argument (expected URI object or URI string)" unless reference
+        URI.for(*to_components(basic_parse(reference, basic_parse(base.to_s))), self)
+      end
     end
 
     # Component syntax used by URI::Generic's setters is shared with
@@ -63,11 +68,25 @@ module URI
 
     private
 
-    # basic URL parser
-    def basic_parse(input)
+    # basic URL parser, with an optional +base+ URL record.
+    def basic_parse(input, base = nil)
       input = preprocess(to_utf8(input))
 
       scheme, rest = parse_scheme(input)
+      relative = scheme.nil?
+      if relative
+        # no scheme state
+        raise InvalidURIError, "missing scheme: #{input.dump}" unless base
+        if base.path.is_a?(String) && !rest.start_with?("#")
+          raise InvalidURIError, "relative reference to a URL with an opaque path: #{input.dump}"
+        end
+        scheme = base.scheme
+      elsif base && scheme == base.scheme && scheme != "file" && SPECIAL_SCHEMES.key?(scheme)
+        # special relative or authority state: two slashes start an
+        # authority; anything else is relative to the base.
+        relative = !rest.match?(TWO_SLASHES)
+      end
+
       # Every state before the fragment state ends at the first "#", and
       # every state before the query state at the first "?" before it.
       rest, query, fragment = split_query_and_fragment(rest)
@@ -78,11 +97,13 @@ module URI
       url.query = query && utf8_percent_encode(query, special ? SPECIAL_QUERY_PERCENT_ENCODE_SET : QUERY_PERCENT_ENCODE_SET)
       url.fragment = fragment && utf8_percent_encode(fragment, FRAGMENT_PERCENT_ENCODE_SET)
 
-      if scheme == "file"
+      if relative
+        parse_relative(url, rest, base, special)
+      elsif scheme == "file"
         # Approximates file state, file slash state and file host state
         # until they are implemented: exactly two leading "/" or "\\"
         # start a host, which may be empty.
-        if rest.match?(FILE_SLASHES)
+        if rest.match?(TWO_SLASHES)
           parse_authority(url, rest[2..-1], true, host_required: false)
         else
           url.path = parse_path(rest, true)
@@ -102,6 +123,48 @@ module URI
         url.path = parse_opaque_path(rest, query || fragment)
       end
       url
+    end
+
+    # relative state and relative slash state. +rest+ is the input after
+    # any scheme, without query and fragment, which +url+ already has.
+    def parse_relative(url, rest, base, special)
+      if base.path.is_a?(String)
+        # no scheme state, for a base with an opaque path: only a
+        # fragment may be given.
+        url.path = base.path
+        url.query = base.query
+        return
+      end
+
+      if rest.start_with?("/") || (special && rest.start_with?("\\"))
+        # relative slash state
+        if special && rest.match?(TWO_SLASHES)
+          return parse_authority(url, rest.sub(SPECIAL_AUTHORITY_SLASHES, ""), true)
+        elsif !special && rest.start_with?("//")
+          return parse_authority(url, rest[2..-1], false)
+        end
+        copy_authority(url, base)
+        url.path = parse_path(rest, special)
+      else
+        copy_authority(url, base)
+        if rest.empty?
+          # c is EOF, "?" or "#": the base path, and the base query unless
+          # a query is given.
+          url.path = base.path.dup
+          url.query = base.query if url.query.nil?
+        else
+          path = base.path.dup
+          path.pop # shorten
+          url.path = parse_path(rest, special, path)
+        end
+      end
+    end
+
+    def copy_authority(url, base)
+      url.username = base.username
+      url.password = base.password
+      url.host = base.host
+      url.port = base.port
     end
 
     # The URL record as the components of URI::RFC3986_Parser#split.
@@ -160,7 +223,8 @@ module URI
     SCHEME = /\A[A-Za-z][A-Za-z0-9+\-.]*:/ # :nodoc:
 
     SPECIAL_AUTHORITY_SLASHES = %r{\A[/\\]*} # :nodoc:
-    FILE_SLASHES = %r{\A[/\\]{2}} # :nodoc:
+    # Two of "/" or "\\", which start an authority in a special URL.
+    TWO_SLASHES = %r{\A[/\\]{2}} # :nodoc:
     AUTHORITY_END = %r{[/?#]} # :nodoc:
     SPECIAL_AUTHORITY_END = %r{[/?#\\]} # :nodoc:
 
@@ -230,12 +294,11 @@ module URI
       input[first..last].delete(ASCII_TAB_OR_NEWLINE)
     end
 
-    # Returns the ASCII-lowercased scheme and the rest of +input+ after
-    # the ":". Without a scheme, the no scheme state fails, since there
-    # is no base URL.
+    # scheme start state and scheme state. Returns the ASCII-lowercased
+    # scheme and the rest of +input+ after the ":", or nil and +input+
+    # when there is no scheme.
     def parse_scheme(input)
-      scheme = input[SCHEME] or
-        raise InvalidURIError, "missing scheme: #{input.dump}"
+      scheme = input[SCHEME] or return [nil, input]
       [scheme.chop.downcase, input[scheme.size..-1]]
     end
 
@@ -254,28 +317,29 @@ module URI
       url.path = parse_path(remainder, special)
     end
 
-    # path start state and path state. Returns the list of path segments.
-    def parse_path(input, special)
+    # path start state and path state. Returns the list of path segments,
+    # appended to +path+ (the shortened base path of a relative reference).
+    def parse_path(input, special, path = [])
       separator = special ? SPECIAL_PATH_SEPARATOR : "/"
       # path start state: a special URL always has a path, even an empty
       # one; another URL has one only if anything follows the authority.
-      return [] if input.empty? && !special
+      return path if input.empty? && !special
       input = input[1..-1] if input.start_with?("/") || (special && input.start_with?("\\"))
 
       buffers = input.split(separator, -1)
       buffers = [""] if buffers.empty?
-      buffers.each_with_index.with_object([]) do |(buffer, i), path|
+      buffers.each_with_index.with_object(path) do |(buffer, i), segments|
         buffer = utf8_percent_encode(buffer, PATH_PERCENT_ENCODE_SET)
         # Whether this segment is ended by the end of the path rather
         # than by a separator.
         last = i == buffers.size - 1
         if double_dot_segment?(buffer)
-          path.pop
-          path << "" if last
+          segments.pop
+          segments << "" if last
         elsif single_dot_segment?(buffer)
-          path << "" if last
+          segments << "" if last
         else
-          path << buffer
+          segments << buffer
         end
       end
     end
