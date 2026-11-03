@@ -395,14 +395,14 @@ module URI
 
     # authority state, host state, port state and the path after them.
     # +rest+ starts right after the slashes preceding the authority.
-    def parse_authority(url, rest, special, host_required: special)
+    def parse_authority(url, rest, special)
       authority_end = rest.index(special ? SPECIAL_AUTHORITY_END : AUTHORITY_END) || rest.size
       authority = rest[0, authority_end]
       remainder = rest[authority_end..-1]
 
       url.username, url.password, host_and_port = split_userinfo(authority)
       host, port = split_host_and_port(host_and_port)
-      raise InvalidURIError, "missing host: #{rest.dump}" if host.empty? && (host_required || port)
+      raise InvalidURIError, "missing host: #{rest.dump}" if host.empty? && (special || port)
       url.host = host.empty? ? host : parse_host(host, special)
       url.port = parse_port(port, url.scheme) if port
       url.path = parse_path(remainder, special)
