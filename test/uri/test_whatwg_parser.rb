@@ -1685,7 +1685,7 @@ class URI::TestWHATWGParser < Test::Unit::TestCase
 
   def test_merge_does_not_modify_receiver
     uri = URI::WHATWG_PARSER.parse("http://a/b/c?q#f")
-    uri + "d"
+    assert_equal("http://a/b/d", uri.merge("d").to_s)
     assert_equal("http://a/b/c?q#f", uri.to_s)
   end
 
