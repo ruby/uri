@@ -1,0 +1,36 @@
+name: WPT
+
+# Runs web-platform-tests' url/resources/urltestdata.json, fetched from WPT
+# master, against URI::WHATWG_PARSER (rake test:wpt).
+#
+# The URL Standard is a living standard and WPT follows its changes, so the
+# scheduled run is how a change in the standard is noticed: it fails when a
+# case newer than test/wpt/urltestdata_exclusions.json fails, or when an
+# excluded case passes or disappears. On push and pull requests a failure is
+# reported without failing the checks, since it can come from WPT rather
+# than from the change being tested. (GitHub runs scheduled workflows on the
+# default branch only, and notifies of a failed scheduled run.)
+
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: '17 3 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  wpt:
+    runs-on: ubuntu-latest
+    continue-on-error: ${{ github.event_name == 'push' || github.event_name == 'pull_request' }}
+    steps:
+    - uses: actions/checkout@v7.0.1
+    - name: Set up Ruby
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: ruby
+    - run: bundle install --jobs 4 --retry 3
+    - name: Run WPT urltestdata
+      run: bundle exec rake test:wpt
