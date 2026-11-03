@@ -700,11 +700,6 @@
     "reason": "unclassified"
   },
   {
-    "input": "http://example.com/foo\tbar",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
     "input": "http://example.com\\\\foo\\\\bar",
     "base": null,
     "reason": "unclassified"
@@ -1217,11 +1212,6 @@
   {
     "input": "http://GOO​⁠﻿goo.com",
     "base": "http://other.com/",
-    "reason": "unclassified"
-  },
-  {
-    "input": "\u0000\u001b\u0004\u0012 http://example.com/\u001f \r ",
-    "base": null,
     "reason": "unclassified"
   },
   {
@@ -1810,21 +1800,6 @@
     "reason": "unclassified"
   },
   {
-    "input": "foo://ho\tst/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "foo://ho\nst/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "foo://ho\rst/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
     "input": "http://a\u0000b/",
     "base": null,
     "reason": "unclassified"
@@ -2011,21 +1986,6 @@
   },
   {
     "input": "http://ab/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://ho\tst/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://ho\nst/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://ho\rst/",
     "base": null,
     "reason": "unclassified"
   },

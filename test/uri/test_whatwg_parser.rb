@@ -228,4 +228,101 @@ class URI::TestWHATWGParser < Test::Unit::TestCase
     $stderr = stderr
     $VERBOSE = verbose
   end
+
+  # --- preprocessing -------------------------------------------------
+  # https://url.spec.whatwg.org/#concept-basic-url-parser (steps 1-3)
+
+  SIMPLE = ["http", nil, "example.com", nil, nil, "/", nil, nil, nil].freeze
+
+  def split(str)
+    URI::WHATWG_PARSER.split(str)
+  end
+
+  def test_split_strips_leading_and_trailing_spaces
+    assert_equal(SIMPLE, split("  http://example.com/  "))
+  end
+
+  def test_split_strips_leading_and_trailing_c0_controls
+    assert_equal(SIMPLE, split("\x00\x01\x1Fhttp://example.com/\x1F\x0B\x00"))
+  end
+
+  def test_split_strips_every_c0_control_and_space_at_both_ends
+    all = (0x00..0x20).map(&:chr).join
+    assert_equal(SIMPLE, split("#{all}http://example.com/#{all}"))
+  end
+
+  def test_split_does_not_strip_just_outside_c0_control_or_space_range
+    # U+0021 "!" and U+007F DELETE are not C0 control or space.
+    assert_equal("/!", split("http://example.com/!")[5])
+    assert_not_equal(SIMPLE, split("http://example.com/\x7F"))
+  end
+
+  def test_split_does_not_strip_non_ascii_whitespace
+    # U+00A0 NO-BREAK SPACE and U+3000 IDEOGRAPHIC SPACE are kept.
+    assert_not_equal(SIMPLE, split("http://example.com/\u00A0"))
+    assert_not_equal(SIMPLE, split("http://example.com/\u3000"))
+  end
+
+  def test_split_removes_tab_and_newlines_anywhere
+    assert_equal(SIMPLE, split("ht\ttp://exa\nmple.com\r/"))
+    assert_equal(SIMPLE, split("\r\nhttp://example.com/\t"))
+  end
+
+  def test_split_keeps_other_inner_c0_controls_and_spaces
+    # Only tab, LF and CR are removed from the inside of the input.
+    assert_not_equal(SIMPLE, split("http://example.com/a\x0Bb"))
+    assert_not_equal(SIMPLE, split("http://example.com/a\x0Cb"))
+    assert_not_equal(SIMPLE, split("http://example.com/a b"))
+  end
+
+  def test_split_does_not_modify_its_argument
+    str = +"  ht\ttp://example.com/  "
+    split(str)
+    assert_equal("  ht\ttp://example.com/  ", str)
+  end
+
+  def test_split_accepts_frozen_string
+    assert_equal(SIMPLE, split(" http://example.com/ ".freeze))
+  end
+
+  def test_split_strips_in_linear_time
+    # Inner runs of C0 control or space must not cause backtracking.
+    pre = ->(n) { "http://example.com/" + " " * n + "a" }
+    assert_linear_performance((1..5).map { |i| 10**i }, pre: pre) do |uri|
+      split(uri)
+    end
+  end
+
+  # --- input encoding ------------------------------------------------
+
+  def test_split_accepts_us_ascii_and_binary_ascii_only_input
+    assert_equal(SIMPLE, split("http://example.com/".encode("US-ASCII")))
+    assert_equal(SIMPLE, split("http://example.com/".b))
+  end
+
+  def test_split_converts_other_encodings_to_utf8
+    assert_equal(SIMPLE, split("http://example.com/".encode("UTF-16LE")))
+    assert_equal(SIMPLE, split(" http://example.com/ ".encode("UTF-16BE")))
+  end
+
+  def test_split_returns_utf8_components
+    split("http://example.com/".encode("UTF-16LE")).compact.each do |component|
+      assert_equal(Encoding::UTF_8, component.encoding, component)
+    end
+  end
+
+  def test_split_rejects_invalid_byte_sequence
+    assert_raise(URI::InvalidURIError) { split("http://example.com/\xFF") }
+    assert_raise(URI::InvalidURIError) { split("http://example.com/\xE3\x81") }
+  end
+
+  def test_split_rejects_binary_input_with_non_ascii_bytes
+    assert_raise(URI::InvalidURIError) { split("http://example.com/\xE3\x81\x82".b) }
+  end
+
+  def test_split_rejects_invalid_utf16_input
+    # An unpaired high surrogate (U+D800) is not a valid UTF-16 sequence.
+    lone_surrogate = ("http://example.com/".encode("UTF-16LE").b + "\x00\xD8".b).force_encoding("UTF-16LE")
+    assert_raise(URI::InvalidURIError) { split(lone_surrogate) }
+  end
 end

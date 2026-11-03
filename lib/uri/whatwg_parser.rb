@@ -14,6 +14,7 @@ module URI
       rescue NoMethodError
         raise InvalidURIError, "bad URI (is not URI?): #{uri.inspect}"
       end
+      uri = preprocess(to_utf8(uri))
 
       scheme, rest = uri.split(":", 2)
       authority, slash, path = rest.delete_prefix("//").partition("/")
@@ -60,6 +61,29 @@ module URI
     end
 
     private
+
+    NOT_C0_CONTROL_OR_SPACE = /[^\x00-\x20]/ # :nodoc:
+    ASCII_TAB_OR_NEWLINE = "\t\n\r" # :nodoc:
+
+    # The URL Standard parses a string of Unicode scalar values.
+    def to_utf8(input)
+      raise InvalidURIError, "invalid byte sequence: #{input.dump}" unless input.valid_encoding?
+      input.encode(Encoding::UTF_8)
+    rescue EncodingError
+      raise InvalidURIError, "cannot be converted to UTF-8: #{input.dump}"
+    end
+
+    # basic URL parser, steps 1-3: strip leading and trailing C0 control
+    # or space, then remove all ASCII tab or newline.
+    #
+    # The ends are found with index/rindex rather than an anchored
+    # regexp such as /[\x00-\x20]+\z/, which backtracks quadratically on
+    # long inner runs of spaces.
+    def preprocess(input)
+      first = input.index(NOT_C0_CONTROL_OR_SPACE) or return +""
+      last = input.rindex(NOT_C0_CONTROL_OR_SPACE)
+      input[first..last].delete(ASCII_TAB_OR_NEWLINE)
+    end
 
     def convert_to_uri(uri)
       if uri.is_a?(URI::Generic)
