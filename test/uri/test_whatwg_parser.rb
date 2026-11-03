@@ -325,4 +325,117 @@ class URI::TestWHATWGParser < Test::Unit::TestCase
     lone_surrogate = ("http://example.com/".encode("UTF-16LE").b + "\x00\xD8".b).force_encoding("UTF-16LE")
     assert_raise(URI::InvalidURIError) { split(lone_surrogate) }
   end
+
+  # --- scheme --------------------------------------------------------
+  # https://url.spec.whatwg.org/#scheme-start-state
+  # https://url.spec.whatwg.org/#scheme-state
+  # https://url.spec.whatwg.org/#no-scheme-state
+
+  def test_split_lowercases_scheme
+    assert_equal("http", split("HTTP://example.com/")[0])
+    assert_equal("https", split("HtTpS://example.com/")[0])
+    assert_equal("foo", split("FOO:bar")[0])
+  end
+
+  def test_split_scheme_may_contain_digits_plus_hyphen_and_dot
+    assert_equal("a+b-c.d0", split("a+b-c.d0:x")[0])
+    assert_equal("a9", split("a9:x")[0])
+  end
+
+  def test_split_single_letter_scheme
+    assert_equal("a", split("a:x")[0])
+    assert_equal("z", split("Z:x")[0])
+  end
+
+  def test_split_scheme_letter_boundaries
+    # "A", "Z", "a", "z" start a scheme; "@", "[", "`", "{" (their
+    # neighbours in ASCII) do not.
+    %w[A Z a z].each { |c| assert_equal(c.downcase, split("#{c}:x")[0], c) }
+    ["@", "[", "`", "{"].each { |c| assert_raise(URI::InvalidURIError, c) { split("#{c}a:x") } }
+  end
+
+  def test_split_scheme_digit_boundaries
+    # "0" and "9" may follow the first letter; "/" (before "0") may not.
+    assert_equal("a0", split("a0:x")[0])
+    assert_equal("a9", split("a9:x")[0])
+    assert_raise(URI::InvalidURIError) { split("a/:x") }
+  end
+
+  def test_split_scheme_must_start_with_letter
+    %w[1a:x +a:x -a:x .a:x].each do |input|
+      assert_raise(URI::InvalidURIError, input) { split(input) }
+    end
+  end
+
+  def test_split_scheme_rejects_other_characters
+    ["a_b:x", "a b:x", "a%62:x", "a!b:x"].each do |input|
+      assert_raise(URI::InvalidURIError, input) { split(input) }
+    end
+  end
+
+  def test_split_scheme_rejects_non_ascii_letters
+    # U+212A KELVIN SIGN lowercases to "k" with Unicode case mapping, but
+    # it is not an ASCII alpha.
+    ["é:x", "aé:x", "K:x", "Khttp:x"].each do |input|
+      assert_raise(URI::InvalidURIError, input) { split(input) }
+    end
+  end
+
+  def test_split_without_scheme_fails_without_base
+    ["example.com", "/path", "//example.com/", "?q", "#f", "", "   ", ":", ":foo"].each do |input|
+      assert_raise(URI::InvalidURIError, input.inspect) { split(input) }
+    end
+  end
+
+  def test_parse_without_scheme_fails
+    assert_raise(URI::InvalidURIError) { URI::WHATWG_PARSER.parse("example.com") }
+  end
+
+  def test_split_uses_first_colon_as_scheme_delimiter
+    assert_equal(["foo", "bar:baz"], split("foo:bar:baz").values_at(0, 6))
+  end
+
+  def test_split_special_schemes_are_hierarchical
+    %w[http https ws wss ftp].each do |scheme|
+      assert_equal(
+        [scheme, nil, "example.com", nil, nil, "/", nil, nil, nil],
+        split("#{scheme}://example.com/"),
+        scheme
+      )
+    end
+  end
+
+  def test_split_file_scheme_is_hierarchical
+    # file is a special scheme. Its own states (file state, file host
+    # state, ...) are not implemented yet.
+    assert_equal(["file", nil], split("FILE:///tmp/a").values_at(0, 6))
+  end
+
+  def test_split_non_special_scheme_with_opaque_path
+    assert_equal(["foo", nil, nil, nil, nil, nil, "bar", nil, nil], split("foo:bar"))
+  end
+
+  def test_split_non_special_scheme_with_empty_opaque_path
+    assert_equal(["foo", nil, nil, nil, nil, nil, "", nil, nil], split("foo:"))
+  end
+
+  def test_split_non_special_scheme_with_path
+    assert_equal(["foo", nil, nil, nil, nil, "/bar", nil, nil, nil], split("foo:/bar"))
+  end
+
+  def test_split_non_special_scheme_with_authority
+    assert_equal(["foo", nil, "host", nil, nil, "/bar", nil, nil, nil], split("foo://host/bar"))
+  end
+
+  def test_split_scheme_that_only_resembles_a_special_one_is_non_special
+    # "http" is special only as the whole scheme.
+    assert_equal("httpx", split("httpx:bar")[0])
+    assert_equal("bar", split("httpx:bar")[6])
+    assert_equal("bar", split("htt:bar")[6])
+  end
+
+  def test_parse_non_special_opaque_round_trip
+    assert_equal("foo:bar", URI::WHATWG_PARSER.parse("foo:bar").to_s)
+    assert_equal("foo:", URI::WHATWG_PARSER.parse("foo:").to_s)
+  end
 end

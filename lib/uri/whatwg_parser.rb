@@ -16,9 +16,21 @@ module URI
       end
       uri = preprocess(to_utf8(uri))
 
-      scheme, rest = uri.split(":", 2)
-      authority, slash, path = rest.delete_prefix("//").partition("/")
-      [scheme, nil, authority, nil, nil, slash + path, nil, nil, nil]
+      scheme, rest = parse_scheme(uri)
+
+      if SPECIAL_SCHEMES.key?(scheme)
+        split_hierarchical(scheme, rest)
+      elsif rest.start_with?("/")
+        # path or authority state
+        if rest.start_with?("//")
+          split_hierarchical(scheme, rest)
+        else
+          [scheme, nil, nil, nil, nil, rest, nil, nil, nil]
+        end
+      else
+        # opaque path state
+        [scheme, nil, nil, nil, nil, nil, rest, nil, nil]
+      end
     end
 
     def parse(uri) # :nodoc:
@@ -62,6 +74,20 @@ module URI
 
     private
 
+    # https://url.spec.whatwg.org/#special-scheme
+    SPECIAL_SCHEMES = {
+      "ftp" => 21,
+      "file" => nil,
+      "http" => 80,
+      "https" => 443,
+      "ws" => 80,
+      "wss" => 443,
+    }.freeze # :nodoc:
+
+    # scheme start state and scheme state: an ASCII alpha followed by
+    # ASCII alphanumerics, "+", "-" or ".", up to the first ":".
+    SCHEME = /\A[A-Za-z][A-Za-z0-9+\-.]*:/ # :nodoc:
+
     NOT_C0_CONTROL_OR_SPACE = /[^\x00-\x20]/ # :nodoc:
     ASCII_TAB_OR_NEWLINE = "\t\n\r" # :nodoc:
 
@@ -83,6 +109,20 @@ module URI
       first = input.index(NOT_C0_CONTROL_OR_SPACE) or return +""
       last = input.rindex(NOT_C0_CONTROL_OR_SPACE)
       input[first..last].delete(ASCII_TAB_OR_NEWLINE)
+    end
+
+    # Returns the ASCII-lowercased scheme and the rest of +input+ after
+    # the ":". Without a scheme, the no scheme state fails, since there
+    # is no base URL.
+    def parse_scheme(input)
+      scheme = input[SCHEME] or
+        raise InvalidURIError, "missing scheme: #{input.dump}"
+      [scheme.chop.downcase, input[scheme.size..-1]]
+    end
+
+    def split_hierarchical(scheme, rest)
+      authority, slash, path = rest.delete_prefix("//").partition("/")
+      [scheme, nil, authority, nil, nil, slash + path, nil, nil, nil]
     end
 
     def convert_to_uri(uri)
