@@ -1680,6 +1680,61 @@ class URI::TestWHATWGParser < Test::Unit::TestCase
     assert_equal("", URI::WHATWG_PARSER.parse("http://h/?").query)
   end
 
+  # Scheme-specific classes are used only where their rules agree with
+  # the URL Standard. URI::FTP rewrites the path by RFC 1738 rules,
+  # URI::MailTo validates the opaque part, and URI::LDAP drops its
+  # default port, so those schemes get URI::Generic.
+
+  def test_parse_uses_scheme_classes_for_http_https_ws_wss_and_file
+    {
+      "http://h/" => URI::HTTP,
+      "https://h/" => URI::HTTPS,
+      "ws://h/" => URI::WS,
+      "wss://h/" => URI::WSS,
+      "file:///a" => URI::File,
+    }.each do |input, klass|
+      assert_instance_of(klass, URI::WHATWG_PARSER.parse(input), input)
+    end
+  end
+
+  def test_parse_uses_generic_for_other_schemes
+    %w[ftp://h/ mailto:a@example.com ldap://h/ ldaps://h/ foo:bar].each do |input|
+      assert_instance_of(URI::Generic, URI::WHATWG_PARSER.parse(input), input)
+    end
+  end
+
+  def test_parse_ftp_path_is_not_rewritten
+    assert_equal("ftp://h//a", URI::WHATWG_PARSER.parse("ftp://h//a").to_s)
+    uri = URI::WHATWG_PARSER.parse("ftp://h/a;type=x")
+    assert_equal(["ftp://h/a;type=x", "/a;type=x"], [uri.to_s, uri.path])
+  end
+
+  def test_parse_ftp_default_port_is_omitted
+    assert_equal("ftp://h/", URI::WHATWG_PARSER.parse("ftp://h:21/").to_s)
+    assert_equal("ftp://h:80/", URI::WHATWG_PARSER.parse("ftp://h:80/").to_s)
+  end
+
+  def test_parse_mailto_is_not_validated_by_mailto_rules
+    assert_equal("mailto:/example.com/", URI::WHATWG_PARSER.parse("mailto:/example.com/").to_s)
+    assert_equal("mailto:a@example.com?subject=x", URI::WHATWG_PARSER.parse("mailto:a@example.com?subject=x").to_s)
+    assert_equal("mailto://h:8080/p?q#f", URI::WHATWG_PARSER.parse("mailto://h:8080/p?q#f").to_s)
+  end
+
+  def test_parse_ldap_keeps_port_389
+    uri = URI::WHATWG_PARSER.parse("ldap://h:389/x")
+    assert_equal(["ldap://h:389/x", 389], [uri.to_s, uri.port])
+  end
+
+  def test_join_uses_the_same_classes
+    assert_instance_of(URI::Generic, URI::WHATWG_PARSER.join("http://a/", "mailto:x"))
+    assert_instance_of(URI::HTTPS, URI::WHATWG_PARSER.join("http://a/", "https://b/"))
+  end
+
+  def test_rfc3986_parser_still_uses_scheme_classes
+    assert_instance_of(URI::MailTo, URI::RFC3986_PARSER.parse("mailto:a@example.com"))
+    assert_instance_of(URI::FTP, URI::RFC3986_PARSER.parse("ftp://h/"))
+  end
+
   def test_rfc3986_parser_still_rejects_stray_percent_in_query
     assert_raise(URI::InvalidURIError) { URI::RFC3986_PARSER.parse("http://h/?%GH") }
   end

@@ -5,28 +5,8 @@
     "reason": "unclassified"
   },
   {
-    "input": "ftp:/example.com/",
-    "base": "http://example.org/foo/bar",
-    "reason": "unclassified"
-  },
-  {
     "input": "file://example:1/",
     "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "mailto:/example.com/",
-    "base": "http://example.org/foo/bar",
-    "reason": "unclassified"
-  },
-  {
-    "input": "ftp:example.com/",
-    "base": "http://example.org/foo/bar",
-    "reason": "unclassified"
-  },
-  {
-    "input": "mailto:example.com/",
-    "base": "http://example.org/foo/bar",
     "reason": "unclassified"
   },
   {
@@ -76,36 +56,6 @@
   },
   {
     "input": "file:C|/m/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "ftp://foo:21/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "ftp://foo:80/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "ftp:/example.com/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "mailto:/example.com/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "ftp:example.com/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "mailto:example.com/",
     "base": null,
     "reason": "unclassified"
   },
@@ -182,11 +132,6 @@
   {
     "input": "http://０Ｘｃ０．０２５０．０１",
     "base": "http://other.com/",
-    "reason": "unclassified"
-  },
-  {
-    "input": "mailto:/../",
-    "base": null,
     "reason": "unclassified"
   },
   {
@@ -375,11 +320,6 @@
     "reason": "unclassified"
   },
   {
-    "input": "ldap://localhost:389/ou=People,o=JNDITutorial",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
     "input": "file://a­b/p",
     "base": null,
     "reason": "unclassified"
@@ -426,21 +366,6 @@
   },
   {
     "input": "https://%C2%AD/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "mailto://example.com:8080/pathname?search#hash",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "mailto:///test",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "mailto://test/a/../b",
     "base": null,
     "reason": "unclassified"
   },

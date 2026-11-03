@@ -167,12 +167,21 @@ module URI
       url.port = base.port
     end
 
-    # Creates the URI object for +components+. The query is set
-    # afterwards with URI::Generic#set_query, as the constructor would
-    # re-escape it by RFC 3986 rules with URI::Generic#query=.
+    # Creates the URI object for +components+.
+    #
+    # Scheme-specific classes are used only for the schemes in
+    # SCHEMES_WITH_CLASS, whose rules agree with the URL Standard; any
+    # other scheme gets URI::Generic. (URI::FTP rewrites the path by RFC
+    # 1738 rules, URI::MailTo validates the opaque part, and URI::LDAP
+    # omits its default port.)
+    #
+    # The query is set afterwards with URI::Generic#set_query, as the
+    # constructor would re-escape it by RFC 3986 rules with
+    # URI::Generic#query=.
     def build(components)
       *components, query, fragment = components
-      uri = URI.for(*components, nil, fragment, self)
+      arguments = [*components, nil, fragment, self]
+      uri = SCHEMES_WITH_CLASS.include?(components[0]) ? URI.for(*arguments) : Generic.new(*arguments)
       uri.__send__(:set_query, query) if query
       uri
     end
@@ -227,6 +236,8 @@ module URI
       "ws" => 80,
       "wss" => 443,
     }.freeze # :nodoc:
+
+    SCHEMES_WITH_CLASS = %w[http https ws wss file].freeze # :nodoc:
 
     # scheme start state and scheme state: an ASCII alpha followed by
     # ASCII alphanumerics, "+", "-" or ".", up to the first ":".
