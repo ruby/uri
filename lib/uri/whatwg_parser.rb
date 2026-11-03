@@ -113,6 +113,16 @@ module URI
     C0_CONTROL_PERCENT_ENCODE_SET = /[^\x20-\x7E]/ # :nodoc:
     PERCENT_ENCODED_BYTE = /%[0-9A-Fa-f]{2}/ # :nodoc:
 
+    ASCII_DIGITS = /\A[0-9]+\z/ # :nodoc:
+    IPV4_NUMBER_DIGITS = {
+      8 => /\A[0-7]+\z/,
+      10 => /\A[0-9]+\z/,
+      16 => /\A[0-9A-Fa-f]+\z/,
+    }.freeze # :nodoc:
+    LEADING_ZEROS = /\A0+/ # :nodoc:
+    # 2**32 - 1 has 11 digits in octal, 10 in decimal and 8 in hex.
+    IPV4_NUMBER_MAX_DIGITS = 11 # :nodoc:
+
     NOT_C0_CONTROL_OR_SPACE = /[^\x00-\x20]/ # :nodoc:
     ASCII_TAB_OR_NEWLINE = "\t\n\r" # :nodoc:
 
@@ -212,7 +222,66 @@ module URI
       # domain to ASCII, for an ASCII domain with beStrict false.
       ascii_domain = domain.downcase
       raise InvalidURIError, "invalid host: #{input.dump}" if ascii_domain.match?(FORBIDDEN_DOMAIN_CODE_POINT)
+      return serialize_ipv4(parse_ipv4(ascii_domain)) if ends_in_a_number?(ascii_domain)
       ascii_domain
+    end
+
+    # ends in a number checker
+    def ends_in_a_number?(input)
+      parts = input.split(".", -1)
+      if parts.last.empty?
+        return false if parts.size == 1
+        parts.pop
+      end
+      last = parts.last
+      return true if last.match?(ASCII_DIGITS)
+      !parse_ipv4_number(last).nil?
+    end
+
+    # IPv4 parser
+    def parse_ipv4(input)
+      parts = input.split(".", -1)
+      parts.pop if parts.last.empty? && parts.size > 1
+      raise InvalidURIError, "invalid IPv4 address: #{input.dump}" if parts.size > 4
+
+      numbers = parts.map do |part|
+        parse_ipv4_number(part) or raise InvalidURIError, "invalid IPv4 address: #{input.dump}"
+      end
+      last = numbers.pop
+      if numbers.any? { |n| n > 255 } || last >= 256**(4 - numbers.size)
+        raise InvalidURIError, "invalid IPv4 address: #{input.dump}"
+      end
+
+      numbers.each_with_index.inject(last) { |ipv4, (n, i)| ipv4 + n * 256**(3 - i) }
+    end
+
+    # IPv4 number parser. Returns nil on failure.
+    #
+    # Any value of 2**32 or more makes the IPv4 parser fail, so a number
+    # with more significant digits than 2**32 - 1 has in any radix is
+    # returned as 2**32 instead of being converted.
+    def parse_ipv4_number(input)
+      return nil if input.empty?
+
+      radix = 10
+      if input.size >= 2 && input.start_with?("0x", "0X")
+        input = input[2..-1]
+        radix = 16
+      elsif input.size >= 2 && input.start_with?("0")
+        input = input[1..-1]
+        radix = 8
+      end
+      return 0 if input.empty?
+      return nil unless input.match?(IPV4_NUMBER_DIGITS.fetch(radix))
+
+      digits = input.sub(LEADING_ZEROS, "")
+      return 2**32 if digits.size > IPV4_NUMBER_MAX_DIGITS
+      digits.to_i(radix)
+    end
+
+    # IPv4 serializer
+    def serialize_ipv4(address)
+      [24, 16, 8, 0].map { |shift| (address >> shift) & 0xFF }.join(".")
     end
 
     # opaque-host parser

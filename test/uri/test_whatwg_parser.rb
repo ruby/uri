@@ -670,6 +670,152 @@ class URI::TestWHATWGParser < Test::Unit::TestCase
     end
   end
 
+  # --- host: IPv4 ---------------------------------------------------
+  # https://url.spec.whatwg.org/#ends-in-a-number-checker
+  # https://url.spec.whatwg.org/#concept-ipv4-parser
+  # https://url.spec.whatwg.org/#ipv4-number-parser
+  # https://url.spec.whatwg.org/#concept-ipv4-serializer
+
+  def host(input)
+    split(input)[HOST]
+  end
+
+  def assert_ipv4_failure(*inputs)
+    inputs.each do |input|
+      assert_raise(URI::InvalidURIError, input) { split(input) }
+    end
+  end
+
+  def test_split_ipv4_dotted_decimal
+    assert_equal("192.168.0.1", host("http://192.168.0.1/"))
+    assert_equal("0.0.0.0", host("http://0.0.0.0/"))
+    assert_equal("255.255.255.255", host("http://255.255.255.255/"))
+  end
+
+  def test_split_ipv4_octal_and_hex_parts
+    assert_equal("192.168.0.1", host("http://0300.0250.0.01/"))
+    assert_equal("192.168.0.1", host("http://0xc0.0xA8.0X0.0x1/"))
+    assert_equal("192.168.0.1", host("http://0xC0.0250.0.1/"))
+  end
+
+  def test_split_ipv4_number_prefix_only
+    # "0x" alone is 0; "0" and "00" are 0.
+    assert_equal("0.0.0.0", host("http://0x/"))
+    assert_equal("0.0.0.0", host("http://0X/"))
+    assert_equal("0.0.0.0", host("http://0/"))
+    assert_equal("0.0.0.0", host("http://00/"))
+    assert_equal("1.0.0.0", host("http://1.0x.0.00/"))
+  end
+
+  def test_split_ipv4_one_part
+    assert_equal("192.168.0.1", host("http://3232235521/"))
+    assert_equal("192.168.0.1", host("http://0xc0a80001/"))
+  end
+
+  def test_split_ipv4_two_parts
+    # The last part fills the remaining three bytes.
+    assert_equal("192.168.0.1", host("http://192.11010049/"))
+  end
+
+  def test_split_ipv4_three_parts
+    # The last part fills the remaining two bytes.
+    assert_equal("192.168.0.1", host("http://192.168.1/"))
+  end
+
+  def test_split_ipv4_trailing_dot_is_ignored_once
+    assert_equal("1.2.3.4", host("http://1.2.3.4./"))
+    assert_equal("0.0.0.1", host("http://1./"))
+    # With two trailing dots the last label is still empty, so it does not
+    # end in a number and is a domain.
+    assert_equal("1.2.3.4..", host("http://1.2.3.4../"))
+  end
+
+  def test_split_ipv4_more_than_four_parts_fails
+    assert_ipv4_failure("http://1.2.3.4.5/", "http://1.2.3.4.5./", "http://0.0.0.0.0/")
+  end
+
+  def test_split_ipv4_empty_part_fails
+    assert_ipv4_failure("http://1..2/", "http://.1/", "http://1.2..3/")
+  end
+
+  def test_split_ipv4_non_last_part_boundaries
+    assert_equal("255.0.0.0", host("http://255.0.0.0/"))
+    assert_ipv4_failure("http://256.0.0.0/", "http://0.256.0.0/", "http://0.0.256.0/")
+    assert_ipv4_failure("http://0x100.0.0.0/", "http://0400.0.0.0/")
+  end
+
+  def test_split_ipv4_last_part_boundaries
+    assert_equal("0.0.0.255", host("http://0.0.0.255/"))
+    assert_ipv4_failure("http://0.0.0.256/")
+
+    assert_equal("1.2.255.255", host("http://1.2.65535/"))
+    assert_ipv4_failure("http://1.2.65536/")
+
+    assert_equal("1.255.255.255", host("http://1.16777215/"))
+    assert_ipv4_failure("http://1.16777216/")
+
+    assert_equal("255.255.255.255", host("http://4294967295/"))
+    assert_equal("255.255.255.255", host("http://0xffffffff/"))
+    assert_equal("255.255.255.255", host("http://037777777777/"))
+    assert_ipv4_failure("http://4294967296/", "http://0x100000000/", "http://040000000000/")
+  end
+
+  def test_split_ipv4_huge_numbers_fail
+    assert_ipv4_failure("http://99999999999999999999999999/", "http://1.2.3.99999999999999999999/",
+                        "http://0x#{"f" * 100}/")
+  end
+
+  def test_split_ipv4_leading_zeros
+    assert_equal("0.0.0.1", host("http://#{"0" * 1000}1/"))
+    assert_equal("0.0.0.1", host("http://0x#{"0" * 1000}1/"))
+  end
+
+  def test_split_ipv4_invalid_digits_fail
+    # "08" and "09" are octal; "+", "-", "_" and spaces are not digits.
+    assert_ipv4_failure("http://08/", "http://09/", "http://1.08/", "http://0xg.1/", "http://0x0x1.1/",
+                        "http://+1.2.3.4/", "http://-1.2.3.4/", "http://1_0.1/", "http://1e1.1/")
+  end
+
+  def test_split_ends_in_a_number_but_not_ipv4_fails
+    assert_ipv4_failure("http://example.1/", "http://foo.09/", "http://foo.0x/", "http://example.1./",
+                        "http://foo.0x1f/")
+  end
+
+  def test_split_not_ending_in_a_number_is_a_domain
+    assert_equal("1.example", host("http://1.example/"))
+    assert_equal("foo.0xg", host("http://foo.0xg/"))
+    assert_equal("1.2.3.4a", host("http://1.2.3.4a/"))
+    assert_equal("1..", host("http://1../"))
+    assert_equal("0x1.example", host("http://0x1.example/"))
+  end
+
+  def test_split_ipv4_after_percent_decoding
+    assert_equal("1.2.3.4", host("http://%31.%32.%33.%34/"))
+    assert_equal("127.0.0.1", host("http://%30x7f.1/"))
+  end
+
+  def test_split_ipv4_for_every_special_scheme
+    %w[https ws wss ftp].each do |scheme|
+      assert_equal("127.0.0.1", host("#{scheme}://0x7f.1/"), scheme)
+    end
+  end
+
+  def test_split_opaque_host_is_not_parsed_as_ipv4
+    assert_equal("0x7f.1", host("foo://0x7f.1/"))
+    assert_equal("1.2.3.08", host("foo://1.2.3.08/"))
+  end
+
+  def test_parse_serializes_ipv4_host
+    assert_equal("http://127.0.0.1/", URI::WHATWG_PARSER.parse("http://0x7f.1/").to_s)
+  end
+
+  def test_split_ipv4_in_linear_time
+    pre = ->(n) { "http://1.2.3." + "9" * n + "/" }
+    assert_linear_performance((2..5).map { |i| 10**i }, pre: pre) do |uri|
+      assert_raise(URI::InvalidURIError) { split(uri) }
+    end
+  end
+
   # --- host: opaque host ---------------------------------------------
   # https://url.spec.whatwg.org/#concept-opaque-host-parser
 
