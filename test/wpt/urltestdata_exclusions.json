@@ -330,11 +330,6 @@
     "reason": "unclassified"
   },
   {
-    "input": "file://example%/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
     "input": "file://[example]/",
     "base": null,
     "reason": "unclassified"
@@ -830,16 +825,6 @@
     "reason": "unclassified"
   },
   {
-    "input": "http://example example.com",
-    "base": "http://other.com/",
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://Goo%20 goo%7C|.com",
-    "base": "http://other.com/",
-    "reason": "unclassified"
-  },
-  {
     "input": "http://[]",
     "base": "http://other.com/",
     "reason": "unclassified"
@@ -990,26 +975,6 @@
     "reason": "unclassified"
   },
   {
-    "input": "sc://faß.ExAmPlE/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://%zz%66%a.com",
-    "base": "http://other.com/",
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://%25",
-    "base": "http://other.com/",
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://hello%00",
-    "base": "http://other.com/",
-    "reason": "unclassified"
-  },
-  {
     "input": "http://%30%78%63%30%2e%30%32%35%30.01",
     "base": "http://other.com/",
     "reason": "unclassified"
@@ -1022,21 +987,6 @@
   {
     "input": "http://192.168.0.257",
     "base": "http://other.com/",
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://%3g%78%63%30%2e%30%32%35%30%2E.01",
-    "base": "http://other.com/",
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://192.168.0.1 hello",
-    "base": "http://other.com/",
-    "reason": "unclassified"
-  },
-  {
-    "input": "https://x x:12",
-    "base": null,
     "reason": "unclassified"
   },
   {
@@ -1086,11 +1036,6 @@
   },
   {
     "input": "http://[::%31]",
-    "base": "http://other.com/",
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://%5B::1]",
     "base": "http://other.com/",
     "reason": "unclassified"
   },
@@ -1295,487 +1240,12 @@
     "reason": "unclassified"
   },
   {
-    "input": "sc://ñ.test/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
     "input": "x",
     "base": "sc://ñ",
     "reason": "unclassified"
   },
   {
     "input": "wow:￿",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "sc://a\u0000b/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "sc://a b/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "sc://a<b",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "sc://a>b",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "sc://a[b/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "sc://a\\b/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "sc://a]b/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "sc://a^b",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "sc://a|b/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://a\u0000b/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://a\u0001b/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://a\u0002b/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://a\u0003b/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://a\u0004b/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://a\u0005b/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://a\u0006b/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://a\u0007b/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://a\bb/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://a\u000bb/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://a\fb/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://a\u000eb/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://a\u000fb/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://a\u0010b/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://a\u0011b/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://a\u0012b/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://a\u0013b/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://a\u0014b/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://a\u0015b/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://a\u0016b/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://a\u0017b/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://a\u0018b/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://a\u0019b/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://a\u001ab/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://a\u001bb/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://a\u001cb/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://a\u001db/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://a\u001eb/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://a\u001fb/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://a b/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://a%b/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://a<b",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://a>b",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://a[b/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://a]b/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://a^b",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://a|b/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://ab/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://ho%00st/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://ho%01st/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://ho%02st/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://ho%03st/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://ho%04st/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://ho%05st/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://ho%06st/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://ho%07st/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://ho%08st/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://ho%09st/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://ho%0Ast/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://ho%0Bst/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://ho%0Cst/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://ho%0Dst/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://ho%0Est/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://ho%0Fst/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://ho%10st/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://ho%11st/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://ho%12st/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://ho%13st/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://ho%14st/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://ho%15st/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://ho%16st/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://ho%17st/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://ho%18st/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://ho%19st/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://ho%1Ast/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://ho%1Bst/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://ho%1Cst/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://ho%1Dst/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://ho%1Est/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://ho%1Fst/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://ho%20st/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://ho%23st/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://ho%25st/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://ho%2Fst/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://ho%3Ast/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://ho%3Cst/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://ho%3Est/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://ho%3Fst/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://ho%40st/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://ho%5Bst/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://ho%5Cst/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://ho%5Dst/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://ho%7Cst/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://ho%7Fst/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "sc://\u0001\u0002\u0003\u0004\u0005\u0006\u0007\b\u000b\f\u000e\u000f\u0010\u0011\u0012\u0013\u0014\u0015\u0016\u0017\u0018\u0019\u001a\u001b\u001c\u001d\u001e\u001f!\"$%&'()*+,-.;=_`{}~/",
     "base": null,
     "reason": "unclassified"
   },
@@ -1976,41 +1446,6 @@
   },
   {
     "input": "https://256.0.0.1/test",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "file://%43%3A",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "file://%43%7C",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "file://%43|",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "file://C%7C",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "file://%43%7C/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "https://%43%7C/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "asdf://%43|/",
     "base": null,
     "reason": "unclassified"
   },
@@ -2420,11 +1855,6 @@
     "reason": "unclassified"
   },
   {
-    "input": "sc://ñ",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
     "input": "sc://ñ?x",
     "base": null,
     "reason": "unclassified"
@@ -2561,11 +1991,6 @@
   },
   {
     "input": "non-special://[1:2:0:0:0:0:0:3]/",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "non-special://[:80/",
     "base": null,
     "reason": "unclassified"
   },
@@ -2930,11 +2355,6 @@
     "reason": "unclassified"
   },
   {
-    "input": "https://\u0000y",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
     "input": "https://x/\u0000y",
     "base": null,
     "reason": "unclassified"
@@ -3217,11 +2637,6 @@
   {
     "input": "//a/../",
     "base": "file:///",
-    "reason": "unclassified"
-  },
-  {
-    "input": "non-special://host\\a",
-    "base": null,
     "reason": "unclassified"
   },
   {

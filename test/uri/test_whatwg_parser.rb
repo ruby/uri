@@ -592,6 +592,116 @@ class URI::TestWHATWGParser < Test::Unit::TestCase
     assert_equal([nil, "/a"], split("file:/a").values_at(HOST, PATH))
   end
 
+  # --- host: domain -------------------------------------------------
+  # https://url.spec.whatwg.org/#concept-host-parser
+  # https://url.spec.whatwg.org/#concept-domain-to-ascii
+
+  def test_split_domain_is_ascii_lowercased
+    assert_equal("example.com", split("http://EXAMPLE.COM/")[HOST])
+    assert_equal("example.com", split("http://ExAmPlE.cOm/")[HOST])
+  end
+
+  def test_split_domain_is_percent_decoded
+    assert_equal("example.com", split("http://ex%61mple.com/")[HOST])
+    assert_equal("example.com", split("http://ex%41mple.com/")[HOST])
+    assert_equal("example.com", split("http://example%2ecom/")[HOST])
+    assert_equal("example.com", split("http://example%2Ecom/")[HOST])
+  end
+
+  def test_split_domain_percent_decoded_to_forbidden_code_point_fails
+    %w[%25 %2F %20 %00 %3A %40 %3C %7C %7F %01].each do |encoded|
+      assert_raise(URI::InvalidURIError, encoded) { split("http://a#{encoded}b/") }
+    end
+  end
+
+  def test_split_domain_with_invalid_percent_sequence_fails
+    # "%" not followed by two hex digits is left alone, and "%" is a
+    # forbidden domain code point.
+    ["http://a%zzb/", "http://a%/", "http://a%4/", "http://a%4g/"].each do |input|
+      assert_raise(URI::InvalidURIError, input) { split(input) }
+    end
+  end
+
+  def test_split_domain_with_forbidden_code_point_fails
+    ["\x00", " ", "<", ">", "[", "]", "^", "|", "%", "\x01", "\x1F", "\x7F"].each do |c|
+      assert_raise(URI::InvalidURIError, c.dump) { split("http://a#{c}b/") }
+    end
+  end
+
+  def test_split_domain_code_point_boundaries
+    # U+0020 SPACE and U+007F DELETE are forbidden; U+0021 "!" and U+007E
+    # "~" next to them are not.
+    assert_equal("a!b", split("http://a!b/")[HOST])
+    assert_equal("a~b", split("http://a~b/")[HOST])
+  end
+
+  def test_split_domain_allows_other_ascii_punctuation
+    assert_equal("a$&'()*+,;=_-b", split("http://a$&'()*+,;=_-b/")[HOST])
+  end
+
+  def test_split_domain_with_empty_labels
+    assert_equal(".", split("http://./")[HOST])
+    assert_equal("..", split("http://../")[HOST])
+    assert_equal("a..b", split("http://a..b/")[HOST])
+    assert_equal("example.com.", split("http://example.com./")[HOST])
+  end
+
+  def test_split_domain_rules_apply_to_every_special_scheme
+    %w[https ws wss ftp].each do |scheme|
+      assert_equal("example.com", split("#{scheme}://EX%41MPLE.com/")[HOST], scheme)
+      assert_raise(URI::InvalidURIError, scheme) { split("#{scheme}://a b/") }
+    end
+  end
+
+  def test_split_ascii_xn_label_is_lowercased
+    # Interim: Punycode validation of "xn--" labels is not implemented.
+    assert_equal("xn--9ca.example", split("http://XN--9CA.example/")[HOST])
+  end
+
+  def test_split_non_ascii_domain_is_left_as_is
+    # Interim behaviour until domain to ASCII (UTS #46) is implemented.
+    assert_equal("é.example", split("http://é.example/")[HOST])
+    assert_equal("%C3%A9.example", split("http://%C3%A9.example/")[HOST])
+  end
+
+  def test_split_bracketed_host_must_end_with_bracket
+    ["http://[::1/", "http://[/", "http://[::1]x/", "foo://[::1/"].each do |input|
+      assert_raise(URI::InvalidURIError, input) { split(input) }
+    end
+  end
+
+  # --- host: opaque host ---------------------------------------------
+  # https://url.spec.whatwg.org/#concept-opaque-host-parser
+
+  def test_split_opaque_host_is_not_lowercased
+    assert_equal("EXAMPLE.com", split("foo://EXAMPLE.com/")[HOST])
+  end
+
+  def test_split_opaque_host_is_not_percent_decoded
+    assert_equal("ex%61mple", split("foo://ex%61mple/")[HOST])
+    assert_equal("a%zzb", split("foo://a%zzb/")[HOST])
+    assert_equal("a%", split("foo://a%/")[HOST])
+  end
+
+  def test_split_opaque_host_with_forbidden_host_code_point_fails
+    ["\x00", " ", "<", ">", "[", "]", "^", "|"].each do |c|
+      assert_raise(URI::InvalidURIError, c.dump) { split("foo://a#{c}b/") }
+    end
+  end
+
+  def test_split_opaque_host_percent_encodes_c0_controls_and_non_ascii
+    assert_equal("a%01b", split("foo://a\x01b/")[HOST])
+    assert_equal("a%1Fb", split("foo://a\x1Fb/")[HOST])
+    assert_equal("a%7Fb", split("foo://a\x7Fb/")[HOST])
+    assert_equal("a%C2%80b", split("foo://a\u0080b/")[HOST])
+    assert_equal("%C3%A9", split("foo://é/")[HOST])
+    assert_equal("%F0%9F%98%80", split("foo://\u{1F600}/")[HOST])
+  end
+
+  def test_split_opaque_host_keeps_printable_ascii
+    assert_equal("a!~%$b", split("foo://a!~%$b/")[HOST])
+  end
+
   def test_split_authority_in_linear_time
     pre = ->(n) { "http:" + "/" * n + "a@" * n + "host/" }
     assert_linear_performance((1..4).map { |i| 10**i }, pre: pre) do |uri|

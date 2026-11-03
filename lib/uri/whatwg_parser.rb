@@ -104,6 +104,15 @@ module URI
     AUTHORITY_END = %r{[/?#]} # :nodoc:
     SPECIAL_AUTHORITY_END = %r{[/?#\\]} # :nodoc:
 
+    # https://url.spec.whatwg.org/#forbidden-host-code-point
+    FORBIDDEN_HOST_CODE_POINT = %r{[\x00\t\n\r #/:<>?@\[\\\]^|]} # :nodoc:
+    # https://url.spec.whatwg.org/#forbidden-domain-code-point
+    # (forbidden host code points, C0 controls, "%" and U+007F DELETE)
+    FORBIDDEN_DOMAIN_CODE_POINT = %r{[\x00-\x20#/:<>?@\[\\\]^|%\x7F]} # :nodoc:
+    # https://url.spec.whatwg.org/#c0-control-percent-encode-set
+    C0_CONTROL_PERCENT_ENCODE_SET = /[^\x20-\x7E]/ # :nodoc:
+    PERCENT_ENCODED_BYTE = /%[0-9A-Fa-f]{2}/ # :nodoc:
+
     NOT_C0_CONTROL_OR_SPACE = /[^\x00-\x20]/ # :nodoc:
     ASCII_TAB_OR_NEWLINE = "\t\n\r" # :nodoc:
 
@@ -146,6 +155,7 @@ module URI
       userinfo, host_and_port = split_userinfo(authority)
       host, port = split_host_and_port(host_and_port)
       raise InvalidURIError, "missing host: #{rest.dump}" if host.empty? && (host_required || port)
+      host = parse_host(host, special) unless host.empty?
 
       [scheme, userinfo, host, port, nil, remainder, nil, nil, nil]
     end
@@ -181,6 +191,44 @@ module URI
         end
       end
       [host_and_port, nil]
+    end
+
+    # host parser
+    def parse_host(input, special)
+      if input.start_with?("[")
+        raise InvalidURIError, "unterminated IPv6 address: #{input.dump}" unless input.end_with?("]")
+        return input # IPv6 parsing is not implemented yet.
+      end
+      return parse_opaque_host(input) unless special
+
+      domain = percent_decode(input)
+      unless domain.ascii_only?
+        # Interim: domain to ASCII (UTS #46) is not implemented yet, so a
+        # non-ASCII domain is returned unchanged.
+        raise InvalidURIError, "invalid host: #{input.dump}" if input.match?(FORBIDDEN_HOST_CODE_POINT)
+        return input
+      end
+
+      # domain to ASCII, for an ASCII domain with beStrict false.
+      ascii_domain = domain.downcase
+      raise InvalidURIError, "invalid host: #{input.dump}" if ascii_domain.match?(FORBIDDEN_DOMAIN_CODE_POINT)
+      ascii_domain
+    end
+
+    # opaque-host parser
+    def parse_opaque_host(input)
+      raise InvalidURIError, "invalid host: #{input.dump}" if input.match?(FORBIDDEN_HOST_CODE_POINT)
+      utf8_percent_encode(input, C0_CONTROL_PERCENT_ENCODE_SET)
+    end
+
+    # percent-decode, then UTF-8 decode without BOM (invalid sequences
+    # become U+FFFD).
+    def percent_decode(input)
+      input.b.gsub(PERCENT_ENCODED_BYTE) { $&[1, 2].hex.chr }.force_encoding(Encoding::UTF_8).scrub
+    end
+
+    def utf8_percent_encode(input, encode_set)
+      input.gsub(encode_set) { |c| c.unpack("C*").map { |b| format("%%%02X", b) }.join }
     end
 
     def convert_to_uri(uri)
