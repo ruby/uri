@@ -6,6 +6,11 @@ module URI
   # URI::WHATWG_PARSER.parse, or switch to it with
   # <tt>URI.parser = URI::WHATWG_PARSER</tt>.
   class WHATWG_Parser # :nodoc:
+    # A URL record (https://url.spec.whatwg.org/#concept-url). +path+ is an
+    # Array of segments, or a String for an opaque path. +port+ is an
+    # Integer, or nil when it is empty or the scheme's default port.
+    URLRecord = Struct.new(:scheme, :username, :password, :host, :port, :path, :query, :fragment) # :nodoc:
+
     # Returns [scheme, userinfo, host, port, registry, path, opaque, query,
     # fragment], the same contract as URI::RFC3986_Parser#split.
     def split(uri) # :nodoc:
@@ -14,26 +19,7 @@ module URI
       rescue NoMethodError
         raise InvalidURIError, "bad URI (is not URI?): #{uri.inspect}"
       end
-      uri = preprocess(to_utf8(uri))
-
-      scheme, rest = parse_scheme(uri)
-      # Every state before the fragment state ends at the first "#", and
-      # every state before the query state at the first "?" before it.
-      rest, query, fragment = split_query_and_fragment(rest)
-
-      # query state and fragment state
-      special = SPECIAL_SCHEMES.key?(scheme)
-      query &&= utf8_percent_encode(query, special ? SPECIAL_QUERY_PERCENT_ENCODE_SET : QUERY_PERCENT_ENCODE_SET)
-      fragment &&= utf8_percent_encode(fragment, FRAGMENT_PERCENT_ENCODE_SET)
-
-      components = split_before_query(scheme, rest)
-      if (opaque = components[6])
-        components[6] = opaque_with_query(opaque, query, fragment)
-      else
-        components[7] = query
-      end
-      components[8] = fragment
-      components
+      to_components(basic_parse(uri))
     end
 
     def parse(uri) # :nodoc:
@@ -77,6 +63,72 @@ module URI
 
     private
 
+    # basic URL parser
+    def basic_parse(input)
+      input = preprocess(to_utf8(input))
+
+      scheme, rest = parse_scheme(input)
+      # Every state before the fragment state ends at the first "#", and
+      # every state before the query state at the first "?" before it.
+      rest, query, fragment = split_query_and_fragment(rest)
+
+      url = URLRecord.new(scheme, "", "", nil, nil, [], nil, nil)
+      special = SPECIAL_SCHEMES.key?(scheme)
+      # query state and fragment state
+      url.query = query && utf8_percent_encode(query, special ? SPECIAL_QUERY_PERCENT_ENCODE_SET : QUERY_PERCENT_ENCODE_SET)
+      url.fragment = fragment && utf8_percent_encode(fragment, FRAGMENT_PERCENT_ENCODE_SET)
+
+      if scheme == "file"
+        # Approximates file state, file slash state and file host state
+        # until they are implemented: exactly two leading "/" or "\\"
+        # start a host, which may be empty.
+        if rest.match?(FILE_SLASHES)
+          parse_authority(url, rest[2..-1], true, host_required: false)
+        else
+          url.path = parse_path(rest, true)
+        end
+      elsif special
+        # special authority slashes state and special authority ignore
+        # slashes state: skip any run of "/" or "\\".
+        parse_authority(url, rest.sub(SPECIAL_AUTHORITY_SLASHES, ""), true)
+      elsif rest.start_with?("/")
+        # path or authority state
+        if rest.start_with?("//")
+          parse_authority(url, rest[2..-1], false)
+        else
+          url.path = parse_path(rest, false)
+        end
+      else
+        url.path = parse_opaque_path(rest, query || fragment)
+      end
+      url
+    end
+
+    # The URL record as the components of URI::RFC3986_Parser#split.
+    def to_components(url)
+      userinfo =
+        if url.password.empty?
+          url.username.empty? ? nil : url.username
+        else
+          "#{url.username}:#{url.password}"
+        end
+      port = url.port&.to_s
+
+      if url.path.is_a?(String)
+        # The query is kept inside opaque, as URI::RFC3986_Parser does,
+        # since URI::Generic does not serialize the query of an opaque URI.
+        opaque = url.query ? "#{url.path}?#{url.query}" : url.path
+        [url.scheme, userinfo, url.host, port, nil, nil, opaque, nil, url.fragment]
+      else
+        path = serialize_path(url.path)
+        # The URL serializer writes "/." before a hostless path that would
+        # otherwise start with "//", so it is not mistaken for an
+        # authority when reparsed.
+        path = "/.#{path}" if url.host.nil? && url.path.size > 1 && url.path[0].empty?
+        [url.scheme, userinfo, url.host, port, nil, path, nil, url.query, url.fragment]
+      end
+    end
+
     def split_query_and_fragment(rest)
       rest, hash, fragment = rest.partition("#")
       fragment = nil if hash.empty?
@@ -86,43 +138,11 @@ module URI
     end
 
     # opaque path state: code points in the C0 control percent-encode set
-    # are percent-encoded, and a space right before "?" or "#" is written
-    # as "%20". The query is kept inside opaque, as URI::RFC3986_Parser
-    # does, since URI::Generic does not serialize the query of an opaque
-    # URI.
-    def opaque_with_query(opaque, query, fragment)
-      opaque = utf8_percent_encode(opaque, C0_CONTROL_PERCENT_ENCODE_SET)
-      opaque = opaque.sub(TRAILING_SPACE, "%20") if query || fragment
-      query ? "#{opaque}?#{query}" : opaque
-    end
-
-    # Splits everything after the scheme and before the query into the
-    # components, leaving query and fragment nil.
-    def split_before_query(scheme, rest)
-      if scheme == "file"
-        # Approximates file state, file slash state and file host state
-        # until they are implemented: exactly two leading "/" or "\\"
-        # start a host, which may be empty.
-        if rest.match?(FILE_SLASHES)
-          split_authority(scheme, rest[2..-1], true, host_required: false)
-        else
-          [scheme, nil, nil, nil, nil, path_without_host(rest, true), nil, nil, nil]
-        end
-      elsif SPECIAL_SCHEMES.key?(scheme)
-        # special authority slashes state and special authority ignore
-        # slashes state: skip any run of "/" or "\\".
-        split_authority(scheme, rest.sub(SPECIAL_AUTHORITY_SLASHES, ""), true)
-      elsif rest.start_with?("/")
-        # path or authority state
-        if rest.start_with?("//")
-          split_authority(scheme, rest[2..-1], false)
-        else
-          [scheme, nil, nil, nil, nil, path_without_host(rest, false), nil, nil, nil]
-        end
-      else
-        # opaque path state
-        [scheme, nil, nil, nil, nil, nil, rest, nil, nil]
-      end
+    # are percent-encoded, and a space right before "?" or "#" (when
+    # +followed+ by a query or fragment) is written as "%20".
+    def parse_opaque_path(input, followed)
+      opaque = utf8_percent_encode(input, C0_CONTROL_PERCENT_ENCODE_SET)
+      followed ? opaque.sub(TRAILING_SPACE, "%20") : opaque
     end
 
     # https://url.spec.whatwg.org/#special-scheme
@@ -219,30 +239,19 @@ module URI
       [scheme.chop.downcase, input[scheme.size..-1]]
     end
 
-    # authority state and host state. +rest+ starts right after the
-    # slashes preceding the authority.
-    def split_authority(scheme, rest, special, host_required: special)
+    # authority state, host state, port state and the path after them.
+    # +rest+ starts right after the slashes preceding the authority.
+    def parse_authority(url, rest, special, host_required: special)
       authority_end = rest.index(special ? SPECIAL_AUTHORITY_END : AUTHORITY_END) || rest.size
       authority = rest[0, authority_end]
       remainder = rest[authority_end..-1]
 
-      userinfo, host_and_port = split_userinfo(authority)
+      url.username, url.password, host_and_port = split_userinfo(authority)
       host, port = split_host_and_port(host_and_port)
       raise InvalidURIError, "missing host: #{rest.dump}" if host.empty? && (host_required || port)
-      host = parse_host(host, special) unless host.empty?
-      port = parse_port(port, scheme) if port
-
-      path = serialize_path(parse_path(remainder, special))
-      [scheme, userinfo, host, port, nil, path, nil, nil, nil]
-    end
-
-    # The path of a URL without a host. The URL serializer writes "/."
-    # before such a path when it would otherwise start with "//", so it
-    # is not mistaken for an authority when reparsed.
-    def path_without_host(input, special)
-      segments = parse_path(input, special)
-      path = serialize_path(segments)
-      segments.size > 1 && segments[0].empty? ? "/.#{path}" : path
+      url.host = host.empty? ? host : parse_host(host, special)
+      url.port = parse_port(port, url.scheme) if port
+      url.path = parse_path(remainder, special)
     end
 
     # path start state and path state. Returns the list of path segments.
@@ -287,23 +296,17 @@ module URI
 
     # authority state, on "@": the last "@" ends the userinfo, and every
     # earlier one is part of it, as "%40". The first ":" separates the
-    # username from the password. Returns the userinfo as the URL
-    # serializer writes it (nil when both parts are empty), and the rest.
+    # username from the password. Returns the percent-encoded username
+    # and password, and the rest.
     def split_userinfo(authority)
-      at = authority.rindex("@") or return [nil, authority]
+      at = authority.rindex("@") or return ["", "", authority]
       host_and_port = authority[at + 1..-1]
       raise InvalidURIError, "missing host after userinfo: #{authority.dump}" if host_and_port.empty?
 
       username, _, password = authority[0, at].gsub("@", "%40").partition(":")
-      username = utf8_percent_encode(username, USERINFO_PERCENT_ENCODE_SET)
-      password = utf8_percent_encode(password, USERINFO_PERCENT_ENCODE_SET)
-      userinfo =
-        if password.empty?
-          username.empty? ? nil : username
-        else
-          "#{username}:#{password}"
-        end
-      [userinfo, host_and_port]
+      [utf8_percent_encode(username, USERINFO_PERCENT_ENCODE_SET),
+       utf8_percent_encode(password, USERINFO_PERCENT_ENCODE_SET),
+       host_and_port]
     end
 
     # host state: the first ":" outside "[...]" starts the port.
@@ -321,8 +324,8 @@ module URI
     end
 
     # port state. +input+ is everything between the ":" and the end of
-    # the authority. Returns the port as a decimal string, or nil when it
-    # is empty or the scheme's default port.
+    # the authority. Returns the port, or nil when it is empty or the
+    # scheme's default port.
     #
     # A port with more significant digits than 65535 has is rejected
     # without converting it.
@@ -333,7 +336,7 @@ module URI
       digits = input.sub(LEADING_ZEROS, "")
       port = digits.size > PORT_MAX_DIGITS ? MAX_PORT + 1 : digits.to_i
       raise InvalidURIError, "port out of range: #{input.dump}" if port > MAX_PORT
-      port == SPECIAL_SCHEMES[scheme] ? nil : port.to_s
+      port == SPECIAL_SCHEMES[scheme] ? nil : port
     end
 
     # host parser
