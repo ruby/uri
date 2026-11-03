@@ -5,11 +5,6 @@
     "reason": "unclassified"
   },
   {
-    "input": "http://user:pass@foo:21/bar;par?b#c",
-    "base": "http://example.org/foo/bar",
-    "reason": "unclassified"
-  },
-  {
     "input": "https://test:@test",
     "base": null,
     "reason": "unclassified"
@@ -37,11 +32,6 @@
   {
     "input": "http://f:21/ b ? d # e ",
     "base": "http://example.org/foo/bar",
-    "reason": "unclassified"
-  },
-  {
-    "input": "lolscheme:x x#x x",
-    "base": null,
     "reason": "unclassified"
   },
   {
@@ -205,21 +195,6 @@
     "reason": "unclassified"
   },
   {
-    "input": "http://foo/path;a??e#f#g",
-    "base": "http://example.org/foo/bar",
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://foo/abcd?efgh?ijkl",
-    "base": "http://example.org/foo/bar",
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://foo/abcd#foo?bar",
-    "base": "http://example.org/foo/bar",
-    "reason": "unclassified"
-  },
-  {
     "input": "[61:24:74]:98",
     "base": "http://example.org/foo/bar",
     "reason": "unclassified"
@@ -311,11 +286,6 @@
   },
   {
     "input": "#β",
-    "base": "http://example.org/foo/bar",
-    "reason": "unclassified"
-  },
-  {
-    "input": "data:text/html,test#test",
     "base": "http://example.org/foo/bar",
     "reason": "unclassified"
   },
@@ -516,21 +486,6 @@
   },
   {
     "input": "http://example.com/‮/foo/‭/bar",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://www.google.com/foo?bar=baz#",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://www.google.com/foo?bar=baz# »",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "data:test# »",
     "base": null,
     "reason": "unclassified"
   },
@@ -765,41 +720,6 @@
     "reason": "unclassified"
   },
   {
-    "input": "non-special:opaque  ?hi",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "non-special:opaque  #hi",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "non-special:opaque  x?hi",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "non-special:opaque  x#hi",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "non-special:opaque \t\t  \t#hi",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "non-special:opaque \t\t  #hi",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "non-special:opaque\t\t  \r #hi",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
     "input": "http://www.foo。bar.com",
     "base": "http://other.com/",
     "reason": "unclassified"
@@ -980,11 +900,6 @@
     "reason": "unclassified"
   },
   {
-    "input": "http://host/?'",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
     "input": "notspecial://host/?'",
     "base": null,
     "reason": "unclassified"
@@ -1150,16 +1065,6 @@
     "reason": "unclassified"
   },
   {
-    "input": "http://facebook.com/?foo=%7B%22abc%22",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "h\tt\nt\rp://h\to\ns\rt:9\t0\n0\r0/p\ta\nt\rh?q\tu\ne\rry#f\tr\na\rg",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
     "input": "?a=b&c=d",
     "base": "http://example.org/foo/bar",
     "reason": "unclassified"
@@ -1172,11 +1077,6 @@
   {
     "input": "http:",
     "base": "http://example.org/foo/bar",
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://foo.bar/baz?qux#foo\bbar",
-    "base": null,
     "reason": "unclassified"
   },
   {
@@ -1615,16 +1515,6 @@
     "reason": "unclassified"
   },
   {
-    "input": "sc://ñ?x",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "sc://ñ#x",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
     "input": "#x",
     "base": "sc://ñ",
     "reason": "unclassified"
@@ -1632,16 +1522,6 @@
   {
     "input": "?x",
     "base": "sc://ñ",
-    "reason": "unclassified"
-  },
-  {
-    "input": "sc://?",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "sc://#",
-    "base": null,
     "reason": "unclassified"
   },
   {
@@ -1657,21 +1537,6 @@
   {
     "input": "////x/",
     "base": "sc://x/",
-    "reason": "unclassified"
-  },
-  {
-    "input": "redis://foo:bar@somehost:6379/0?baz=bam&qux=baz",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "irc://myserver.com:6999/channel?passwd",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "dns://fw.example.org:9999/foo.bar.org?type=TXT",
-    "base": null,
     "reason": "unclassified"
   },
   {
@@ -1765,47 +1630,7 @@
     "reason": "unclassified"
   },
   {
-    "input": "http://example.org/test?\"",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://example.org/test?#",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://example.org/test?<",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://example.org/test?>",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://example.org/test?⌣",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://example.org/test?%23%23",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
     "input": "http://example.org/test?%GH",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://example.org/test?a#%EF",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://example.org/test?a#%GH",
     "base": null,
     "reason": "unclassified"
   },
@@ -1827,21 +1652,6 @@
   {
     "input": "test-a-colon-slash-slash-b.html",
     "base": "a://b",
-    "reason": "unclassified"
-  },
-  {
-    "input": "http://example.org/test?a#b\u0000c",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "non-spec://example.org/test?a#b\u0000c",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "non-spec:/test?a#b\u0000c",
-    "base": null,
     "reason": "unclassified"
   },
   {
@@ -1965,32 +1775,12 @@
     "reason": "unclassified"
   },
   {
-    "input": "https://x/?\u0000y",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "https://x/?#\u0000y",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
     "input": "https://￿y",
     "base": null,
     "reason": "unclassified"
   },
   {
     "input": "https://x/￿y",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "https://x/?￿y",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "https://x/?#￿y",
     "base": null,
     "reason": "unclassified"
   },
@@ -2010,11 +1800,6 @@
     "reason": "unclassified"
   },
   {
-    "input": "non-special:x/?#\u0000y",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
     "input": "non-special:￿y",
     "base": null,
     "reason": "unclassified"
@@ -2026,11 +1811,6 @@
   },
   {
     "input": "non-special:x/?￿y",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "non-special:x/?#￿y",
     "base": null,
     "reason": "unclassified"
   },
@@ -2055,17 +1835,7 @@
     "reason": "unclassified"
   },
   {
-    "input": "data://example.com:8080/pathname?search#hash",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
     "input": "data://test/a/../b",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "javascript://example.com:8080/pathname?search#hash",
     "base": null,
     "reason": "unclassified"
   },
@@ -2090,17 +1860,7 @@
     "reason": "unclassified"
   },
   {
-    "input": "intent://example.com:8080/pathname?search#hash",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
     "input": "intent://test/a/../b",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "urn://example.com:8080/pathname?search#hash",
     "base": null,
     "reason": "unclassified"
   },
@@ -2110,17 +1870,7 @@
     "reason": "unclassified"
   },
   {
-    "input": "turn://example.com:8080/pathname?search#hash",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
     "input": "turn://test/a/../b",
-    "base": null,
-    "reason": "unclassified"
-  },
-  {
-    "input": "stun://example.com:8080/pathname?search#hash",
     "base": null,
     "reason": "unclassified"
   },

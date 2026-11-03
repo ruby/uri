@@ -48,9 +48,19 @@ module WPT
     end
 
     # The URL attributes (as the WHATWG URL API exposes them) of +uri+.
+    #
+    # URI::Generic keeps the query of an opaque URI inside opaque, after
+    # the first "?" (an opaque path cannot contain "?").
     def components(uri)
       port = uri.port && uri.port != uri.default_port ? uri.port.to_s : ""
       hostname = uri.host.to_s
+      if uri.opaque
+        pathname, question, query = uri.opaque.partition("?")
+        query = nil if question.empty?
+      else
+        pathname = uri.path.to_s
+        query = uri.query
+      end
       {
         "href" => uri.to_s,
         "protocol" => "#{uri.scheme}:",
@@ -59,8 +69,8 @@ module WPT
         "host" => port.empty? ? hostname : "#{hostname}:#{port}",
         "hostname" => hostname,
         "port" => port,
-        "pathname" => uri.opaque || uri.path.to_s,
-        "search" => uri.query.to_s.empty? ? "" : "?#{uri.query}",
+        "pathname" => pathname,
+        "search" => query.to_s.empty? ? "" : "?#{query}",
         "hash" => uri.fragment.to_s.empty? ? "" : "##{uri.fragment}",
       }
     end

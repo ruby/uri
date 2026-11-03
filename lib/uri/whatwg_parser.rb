@@ -17,31 +17,18 @@ module URI
       uri = preprocess(to_utf8(uri))
 
       scheme, rest = parse_scheme(uri)
+      # Every state before the fragment state ends at the first "#", and
+      # every state before the query state at the first "?" before it.
+      rest, query, fragment = split_query_and_fragment(rest)
 
-      if scheme == "file"
-        # Approximates file state, file slash state and file host state
-        # until they are implemented: exactly two leading "/" or "\\"
-        # start a host, which may be empty.
-        if rest.match?(FILE_SLASHES)
-          split_authority(scheme, rest[2..-1], true, host_required: false)
-        else
-          [scheme, nil, nil, nil, nil, rest, nil, nil, nil]
-        end
-      elsif SPECIAL_SCHEMES.key?(scheme)
-        # special authority slashes state and special authority ignore
-        # slashes state: skip any run of "/" or "\\".
-        split_authority(scheme, rest.sub(SPECIAL_AUTHORITY_SLASHES, ""), true)
-      elsif rest.start_with?("/")
-        # path or authority state
-        if rest.start_with?("//")
-          split_authority(scheme, rest[2..-1], false)
-        else
-          [scheme, nil, nil, nil, nil, rest, nil, nil, nil]
-        end
+      components = split_before_query(scheme, rest)
+      if (opaque = components[6])
+        components[6] = opaque_with_query(opaque, query, fragment)
       else
-        # opaque path state
-        [scheme, nil, nil, nil, nil, nil, rest, nil, nil]
+        components[7] = query
       end
+      components[8] = fragment
+      components
     end
 
     def parse(uri) # :nodoc:
@@ -85,6 +72,52 @@ module URI
 
     private
 
+    def split_query_and_fragment(rest)
+      rest, hash, fragment = rest.partition("#")
+      fragment = nil if hash.empty?
+      rest, question, query = rest.partition("?")
+      query = nil if question.empty?
+      [rest, query, fragment]
+    end
+
+    # opaque path state: a space right before "?" or "#" is written as
+    # "%20". The query is kept inside opaque, as URI::RFC3986_Parser
+    # does, since URI::Generic does not serialize the query of an opaque
+    # URI.
+    def opaque_with_query(opaque, query, fragment)
+      opaque = opaque.sub(TRAILING_SPACE, "%20") if query || fragment
+      query ? "#{opaque}?#{query}" : opaque
+    end
+
+    # Splits everything after the scheme and before the query into the
+    # components, leaving query and fragment nil.
+    def split_before_query(scheme, rest)
+      if scheme == "file"
+        # Approximates file state, file slash state and file host state
+        # until they are implemented: exactly two leading "/" or "\\"
+        # start a host, which may be empty.
+        if rest.match?(FILE_SLASHES)
+          split_authority(scheme, rest[2..-1], true, host_required: false)
+        else
+          [scheme, nil, nil, nil, nil, rest, nil, nil, nil]
+        end
+      elsif SPECIAL_SCHEMES.key?(scheme)
+        # special authority slashes state and special authority ignore
+        # slashes state: skip any run of "/" or "\\".
+        split_authority(scheme, rest.sub(SPECIAL_AUTHORITY_SLASHES, ""), true)
+      elsif rest.start_with?("/")
+        # path or authority state
+        if rest.start_with?("//")
+          split_authority(scheme, rest[2..-1], false)
+        else
+          [scheme, nil, nil, nil, nil, rest, nil, nil, nil]
+        end
+      else
+        # opaque path state
+        [scheme, nil, nil, nil, nil, nil, rest, nil, nil]
+      end
+    end
+
     # https://url.spec.whatwg.org/#special-scheme
     SPECIAL_SCHEMES = {
       "ftp" => 21,
@@ -127,6 +160,8 @@ module URI
 
     MAX_PORT = 2**16 - 1 # :nodoc:
     PORT_MAX_DIGITS = MAX_PORT.to_s.size # :nodoc:
+
+    TRAILING_SPACE = / \z/ # :nodoc:
 
     NOT_C0_CONTROL_OR_SPACE = /[^\x00-\x20]/ # :nodoc:
     ASCII_TAB_OR_NEWLINE = "\t\n\r" # :nodoc:

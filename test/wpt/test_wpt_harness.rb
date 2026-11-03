@@ -124,6 +124,37 @@ class WPT::TestHarness < Test::Unit::TestCase
     assert_equal("a@example.com", c["pathname"])
   end
 
+  def opaque_uri(opaque, fragment = nil)
+    # URI::Generic keeps the query of an opaque URI inside opaque.
+    URI::Generic.new("foo", nil, nil, nil, nil, nil, opaque, nil, fragment)
+  end
+
+  def test_components_query_inside_opaque_is_search
+    c = WPT::URLTestData.components(opaque_uri("bar?q", "f"))
+    assert_equal("bar", c["pathname"])
+    assert_equal("?q", c["search"])
+    assert_equal("#f", c["hash"])
+    assert_equal("foo:bar?q#f", c["href"])
+  end
+
+  def test_components_empty_query_inside_opaque
+    c = WPT::URLTestData.components(opaque_uri("bar?"))
+    assert_equal("bar", c["pathname"])
+    assert_equal("", c["search"])
+  end
+
+  def test_components_opaque_query_containing_question_mark
+    c = WPT::URLTestData.components(opaque_uri("bar?a?b"))
+    assert_equal("bar", c["pathname"])
+    assert_equal("?a?b", c["search"])
+  end
+
+  def test_components_empty_opaque
+    c = WPT::URLTestData.components(opaque_uri(""))
+    assert_equal("", c["pathname"])
+    assert_equal("", c["search"])
+  end
+
   # --- run -----------------------------------------------------------
 
   def test_run_without_base_uses_parse

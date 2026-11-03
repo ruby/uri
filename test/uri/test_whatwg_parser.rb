@@ -1038,6 +1038,120 @@ class URI::TestWHATWGParser < Test::Unit::TestCase
     end
   end
 
+  # --- query and fragment -------------------------------------------
+  # https://url.spec.whatwg.org/#path-state
+  # https://url.spec.whatwg.org/#query-state
+  # https://url.spec.whatwg.org/#fragment-state
+  # https://url.spec.whatwg.org/#cannot-be-a-base-url-path-state
+
+  QUERY, FRAGMENT = 7, 8
+
+  def test_split_query_and_fragment
+    assert_equal(["/p", "q", "f"], split("http://h/p?q#f").values_at(PATH, QUERY, FRAGMENT))
+  end
+
+  def test_split_query_only
+    assert_equal(["/p", "q", nil], split("http://h/p?q").values_at(PATH, QUERY, FRAGMENT))
+  end
+
+  def test_split_fragment_only
+    assert_equal(["/p", nil, "f"], split("http://h/p#f").values_at(PATH, QUERY, FRAGMENT))
+  end
+
+  def test_split_empty_query_and_fragment_are_kept
+    assert_equal(["", nil], split("http://h/p?").values_at(QUERY, FRAGMENT))
+    assert_equal([nil, ""], split("http://h/p#").values_at(QUERY, FRAGMENT))
+    assert_equal(["", ""], split("http://h/p?#").values_at(QUERY, FRAGMENT))
+  end
+
+  def test_split_question_mark_after_hash_is_part_of_fragment
+    assert_equal([nil, "f?q"], split("http://h/p#f?q").values_at(QUERY, FRAGMENT))
+  end
+
+  def test_split_query_and_fragment_split_at_first_delimiter
+    assert_equal("a?b", split("http://h/p?a?b")[QUERY])
+    assert_equal("a#b", split("http://h/p#a#b")[FRAGMENT])
+    assert_equal(["a?b", "c#d?e"], split("http://h/p?a?b#c#d?e").values_at(QUERY, FRAGMENT))
+  end
+
+  def test_split_query_and_fragment_right_after_host
+    assert_equal(["h", "q", nil], split("http://h?q").values_at(HOST, QUERY, FRAGMENT))
+    assert_equal(["h", nil, "f"], split("http://h#f").values_at(HOST, QUERY, FRAGMENT))
+    assert_equal(["h", "8080", "q"], split("http://h:8080?q").values_at(HOST, PORT, QUERY))
+  end
+
+  def test_split_hash_ends_authority_before_at_sign
+    assert_equal([nil, "u", "@host/"], split('http://u#@host/').values_at(USERINFO, HOST, FRAGMENT))
+  end
+
+  def test_split_backslash_in_query_and_fragment_is_kept
+    assert_equal(["a\\b", "c\\d"], split("http://h/?a\\b#c\\d").values_at(QUERY, FRAGMENT))
+  end
+
+  def test_split_query_and_fragment_in_non_special_url
+    assert_equal(["h", "/p", "q", "f"], split("foo://h/p?q#f").values_at(HOST, PATH, QUERY, FRAGMENT))
+    assert_equal([nil, "/p", "q", "f"], split("foo:/p?q#f").values_at(HOST, PATH, QUERY, FRAGMENT))
+    assert_equal(["", "q"], split("foo://?q").values_at(HOST, QUERY))
+  end
+
+  def test_split_query_and_fragment_in_file_url
+    assert_equal(["/a", "q", "f"], split("file:///a?q#f").values_at(PATH, QUERY, FRAGMENT))
+  end
+
+  # An opaque URI keeps its query inside opaque, as URI::RFC3986_Parser
+  # does, since URI::Generic does not serialize the query of an opaque URI.
+
+  def test_split_opaque_path_with_query_and_fragment
+    assert_equal(["bar?q", nil, "f"], split("foo:bar?q#f").values_at(OPAQUE, QUERY, FRAGMENT))
+  end
+
+  def test_split_opaque_path_with_fragment_containing_question_mark
+    assert_equal(["bar", nil, "f?q"], split("foo:bar#f?q").values_at(OPAQUE, QUERY, FRAGMENT))
+  end
+
+  def test_split_opaque_path_with_empty_query_and_fragment
+    assert_equal(["bar?", nil, ""], split("foo:bar?#").values_at(OPAQUE, QUERY, FRAGMENT))
+  end
+
+  def test_split_empty_opaque_path_with_query_or_fragment
+    assert_equal(["?q", nil], split("foo:?q").values_at(OPAQUE, FRAGMENT))
+    assert_equal(["", "f"], split("foo:#f").values_at(OPAQUE, FRAGMENT))
+  end
+
+  def test_split_opaque_path_space_before_query_or_fragment_is_encoded
+    # Only the space right before "?" or "#" is encoded, so it survives
+    # the stripping of trailing spaces when the URL is reparsed.
+    assert_equal("a%20?q", split("foo:a ?q")[OPAQUE])
+    assert_equal("a %20", split("foo:a  #f")[OPAQUE])
+    assert_equal("a  %20?", split("foo:a   ?")[OPAQUE])
+  end
+
+  def test_split_opaque_path_other_spaces_are_kept
+    assert_equal("a  b?q", split("foo:a  b?q")[OPAQUE])
+    assert_equal("a b", split("foo:a b")[OPAQUE])
+  end
+
+  def test_split_opaque_path_trailing_spaces_are_stripped
+    # by the preprocessing, as they are at the end of the input.
+    assert_equal("a", split("foo:a  ")[OPAQUE])
+  end
+
+  def test_split_space_in_query_or_fragment_of_opaque_url_is_not_encoded_here
+    assert_equal("a? b", split("foo:a? b")[OPAQUE])
+    assert_equal(" b", split("foo:a# b")[FRAGMENT])
+  end
+
+  def test_parse_round_trip_with_query_and_fragment
+    %w[http://h/p?q#f http://h/p?# foo:bar?q#f foo:bar?# foo://h/p?q#f].each do |input|
+      assert_equal(input, URI::WHATWG_PARSER.parse(input).to_s, input)
+    end
+  end
+
+  def test_parse_query_and_fragment
+    uri = URI::WHATWG_PARSER.parse("http://h/p?q#f")
+    assert_equal(["q", "f"], [uri.query, uri.fragment])
+  end
+
   # --- host: opaque host ---------------------------------------------
   # https://url.spec.whatwg.org/#concept-opaque-host-parser
 
