@@ -557,7 +557,7 @@ class URI::TestWHATWGParser < Test::Unit::TestCase
   end
 
   def test_split_brackets_in_userinfo_do_not_affect_port
-    assert_equal(["u[", "host", "80"], split("http://u[@host:80/").values_at(USERINFO, HOST, PORT))
+    assert_equal(["u[", "host", "8080"], split("http://u[@host:8080/").values_at(USERINFO, HOST, PORT))
   end
 
   def test_split_special_url_needs_host
@@ -933,6 +933,109 @@ class URI::TestWHATWGParser < Test::Unit::TestCase
     uri = URI::WHATWG_PARSER.parse("http://[0:0::1]/")
     assert_equal("http://[::1]/", uri.to_s)
     assert_equal("::1", uri.hostname)
+  end
+
+  # --- port ---------------------------------------------------------
+  # https://url.spec.whatwg.org/#port-state
+
+  def port(input)
+    split(input)[PORT]
+  end
+
+  def assert_port_failure(*inputs)
+    inputs.each do |input|
+      assert_raise(URI::InvalidURIError, input) { split(input) }
+    end
+  end
+
+  def test_split_port
+    assert_equal("8080", port("http://h:8080/"))
+    assert_equal("8080", port("http://u:p@h:8080/"))
+  end
+
+  def test_split_empty_port_is_nil
+    assert_nil(port("http://h:/"))
+    assert_nil(port("http://h:"))
+    assert_nil(port("http://h:?q"))
+    assert_nil(port("foo://h:/"))
+  end
+
+  def test_split_default_port_is_nil
+    { "http" => 80, "https" => 443, "ws" => 80, "wss" => 443, "ftp" => 21 }.each do |scheme, default|
+      assert_nil(port("#{scheme}://h:#{default}/"), scheme)
+    end
+  end
+
+  def test_split_default_port_of_another_scheme_is_kept
+    assert_equal("443", port("http://h:443/"))
+    assert_equal("80", port("https://h:80/"))
+    assert_equal("80", port("ftp://h:80/"))
+    assert_equal("21", port("http://h:21/"))
+  end
+
+  def test_split_non_special_scheme_has_no_default_port
+    assert_equal("80", port("foo://h:80/"))
+    assert_equal("443", port("foo://h:443/"))
+  end
+
+  def test_split_port_leading_zeros_are_removed
+    assert_equal("8080", port("http://h:0008080/"))
+    assert_equal("80", port("foo://h:0080/"))
+    assert_nil(port("http://h:00080/"))
+    assert_equal("1", port("http://h:#{"0" * 1000}1/"))
+    assert_equal("0", port("http://h:000/"))
+  end
+
+  def test_split_port_boundaries
+    assert_equal("0", port("http://h:0/"))
+    assert_equal("1", port("http://h:1/"))
+    assert_equal("65535", port("http://h:65535/"))
+    assert_port_failure("http://h:65536/", "http://h:99999/", "http://h:100000/", "foo://h:65536/")
+  end
+
+  def test_split_huge_port_fails
+    assert_port_failure("http://h:#{"9" * 100}/", "http://h:1#{"0" * 100}/")
+  end
+
+  def test_split_port_must_be_digits
+    assert_port_failure("http://h:8a/", "http://h:a/", "http://h:-1/", "http://h:+1/", "http://h: 1/",
+                        "http://h:1 /", "http://h:1_0/", "http://h:0x10/", "http://h:1:2/", "http://h:1.0/",
+                        "http://h:\uFF11/", "foo://h:8a/")
+  end
+
+  def test_split_port_ends_at_authority_end
+    %w[/ ? #].each do |c|
+      assert_equal("8080", port("http://h:8080#{c}x"), c)
+      assert_equal("8080", port("foo://h:8080#{c}x"), c)
+    end
+    assert_equal("8080", port("http://h:8080\\x"))
+  end
+
+  def test_split_non_special_port_does_not_end_at_backslash
+    assert_port_failure("foo://h:8080\\x")
+  end
+
+  def test_split_port_with_ipv6_host
+    assert_equal("8080", port("http://[::1]:8080/"))
+    assert_nil(port("http://[::1]:80/"))
+  end
+
+  def test_parse_port
+    assert_equal(8080, URI::WHATWG_PARSER.parse("http://h:8080/").port)
+    assert_equal("http://h:8080/", URI::WHATWG_PARSER.parse("http://h:08080/").to_s)
+  end
+
+  def test_parse_default_port_is_omitted
+    uri = URI::WHATWG_PARSER.parse("http://h:80/")
+    assert_equal("http://h/", uri.to_s)
+    assert_equal(80, uri.port)
+  end
+
+  def test_split_port_in_linear_time
+    pre = ->(n) { "http://h:" + "9" * n + "/" }
+    assert_linear_performance((2..5).map { |i| 10**i }, pre: pre) do |uri|
+      assert_raise(URI::InvalidURIError) { split(uri) }
+    end
   end
 
   # --- host: opaque host ---------------------------------------------

@@ -125,6 +125,9 @@ module URI
     # 2**32 - 1 has 11 digits in octal, 10 in decimal and 8 in hex.
     IPV4_NUMBER_MAX_DIGITS = 11 # :nodoc:
 
+    MAX_PORT = 2**16 - 1 # :nodoc:
+    PORT_MAX_DIGITS = MAX_PORT.to_s.size # :nodoc:
+
     NOT_C0_CONTROL_OR_SPACE = /[^\x00-\x20]/ # :nodoc:
     ASCII_TAB_OR_NEWLINE = "\t\n\r" # :nodoc:
 
@@ -168,6 +171,7 @@ module URI
       host, port = split_host_and_port(host_and_port)
       raise InvalidURIError, "missing host: #{rest.dump}" if host.empty? && (host_required || port)
       host = parse_host(host, special) unless host.empty?
+      port = parse_port(port, scheme) if port
 
       [scheme, userinfo, host, port, nil, remainder, nil, nil, nil]
     end
@@ -203,6 +207,22 @@ module URI
         end
       end
       [host_and_port, nil]
+    end
+
+    # port state. +input+ is everything between the ":" and the end of
+    # the authority. Returns the port as a decimal string, or nil when it
+    # is empty or the scheme's default port.
+    #
+    # A port with more significant digits than 65535 has is rejected
+    # without converting it.
+    def parse_port(input, scheme)
+      return nil if input.empty?
+      raise InvalidURIError, "invalid port: #{input.dump}" unless input.match?(ASCII_DIGITS)
+
+      digits = input.sub(LEADING_ZEROS, "")
+      port = digits.size > PORT_MAX_DIGITS ? MAX_PORT + 1 : digits.to_i
+      raise InvalidURIError, "port out of range: #{input.dump}" if port > MAX_PORT
+      port == SPECIAL_SCHEMES[scheme] ? nil : port.to_s
     end
 
     # host parser
