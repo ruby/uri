@@ -11,6 +11,7 @@
 
 require_relative "rfc2396_parser"
 require_relative "rfc3986_parser"
+require_relative "whatwg_parser"
 
 module URI
   # The default parser instance for RFC 2396.
@@ -20,6 +21,11 @@ module URI
   # The default parser instance for RFC 3986.
   RFC3986_PARSER = RFC3986_Parser.new
   Ractor.make_shareable(RFC3986_PARSER) if defined?(Ractor)
+
+  # The parser instance for the WHATWG URL Standard. It is not the default;
+  # switch to it with <tt>URI.parser = URI::WHATWG_PARSER</tt>.
+  WHATWG_PARSER = WHATWG_Parser.new
+  Ractor.make_shareable(WHATWG_PARSER) if defined?(Ractor)
 
   # The default parser instance.
   DEFAULT_PARSER = RFC3986_PARSER
