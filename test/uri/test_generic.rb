@@ -368,6 +368,18 @@ class URI::TestGeneric < Test::Unit::TestCase
 
     url = URI.parse('mailto:foo@example.com').route_to('mailto:foo@example.com')
     assert_equal('', url.to_s)
+
+    url = URI.parse('file:notes.txt').route_to('file:/home/alice/notes.txt')
+    assert_equal('file:///home/alice/notes.txt', url.to_s)
+
+    url = URI.parse('file:/home/alice/notes.txt').route_to('file:notes.txt')
+    assert_equal('file:notes.txt', url.to_s)
+
+    url = URI.parse('file:notes.txt').route_to('file:/home/alice/../bob/notes.txt')
+    assert_equal('file:///home/alice/../bob/notes.txt', url.to_s)
+
+    url = URI.parse('http:example.com').route_to('http://example.com/about')
+    assert_equal('http://example.com/about', url.to_s)
   end
 
   def test_rfc3986_examples
