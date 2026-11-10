@@ -163,7 +163,8 @@ module URI
   end
 
   # :stopdoc:
-  INITIAL_SCHEMES = scheme_list
+  # Constant names of the bundled schemes, by lowercase name, to skip Schemes.escape.
+  INITIAL_SCHEMES = %w[file ftp http https ldap ldaps mailto ws wss].map { |scheme| [scheme, scheme.upcase.to_sym] }.to_h
   private_constant :INITIAL_SCHEMES
   Ractor.make_shareable(INITIAL_SCHEMES) if defined?(Ractor)
   # :startdoc:
@@ -185,11 +186,8 @@ module URI
   #   # => #<URI::HTTP foo://john.doe@www.example.com:123/forum/questions/?tag=networking&order=newest#top>
   #
   def self.for(scheme, *arguments, default: Generic)
-    const_name = Schemes.escape(scheme)
-
-    uri_class = INITIAL_SCHEMES[const_name]
-    uri_class ||= Schemes.find(const_name)
-    uri_class ||= default
+    const_name = INITIAL_SCHEMES[scheme] || Schemes.escape(scheme)
+    uri_class = Schemes.find(const_name) || default
 
     return uri_class.new(scheme, *arguments)
   end
