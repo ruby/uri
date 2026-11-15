@@ -248,6 +248,14 @@ class URI::TestGeneric < Test::Unit::TestCase
     url = URI.parse('http://a/b//c') + 'd//e'
     assert_equal('http://a/b//d//e', url.to_s)
 
+    # "." segments in the base path are removed as well (RFC 3986, 5.2.4)
+    url = URI.parse('http://a/b/./c/') + 'g'
+    assert_equal('http://a/b/c/g', url.to_s)
+    url = URI.parse('http://a/b/./../c/') + 'g'
+    assert_equal('http://a/c/g', url.to_s)
+    url = URI.parse('http://a/b/.') + 'g'
+    assert_equal('http://a/b/g', url.to_s)
+
     u0 = URI.parse('mailto:foo@example.com')
     u1 = URI.parse('mailto:foo@example.com#bar')
     assert_equal(uri_to_ary(u0 + '#bar'), uri_to_ary(u1), "[ruby-dev:23628]")
