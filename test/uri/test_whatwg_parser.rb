@@ -376,7 +376,7 @@ class URI::TestWHATWGParser < Test::Unit::TestCase
   def test_split_scheme_rejects_non_ascii_letters
     # U+212A KELVIN SIGN lowercases to "k" with Unicode case mapping, but
     # it is not an ASCII alpha.
-    ["é:x", "aé:x", "K:x", "Khttp:x"].each do |input|
+    ["\u00E9:x", "a\u00E9:x", "\u212A:x", "\u212Ahttp:x"].each do |input|
       assert_raise(URI::InvalidURIError, input) { split(input) }
     end
   end
@@ -659,7 +659,7 @@ class URI::TestWHATWGParser < Test::Unit::TestCase
 
   def test_split_non_ascii_domain_is_left_as_is
     # Interim behaviour until domain to ASCII (UTS #46) is implemented.
-    assert_equal("é.example", split("http://é.example/")[HOST])
+    assert_equal("\u00E9.example", split("http://\u00E9.example/")[HOST])
     assert_equal("%C3%A9.example", split("http://%C3%A9.example/")[HOST])
   end
 
@@ -884,7 +884,7 @@ class URI::TestWHATWGParser < Test::Unit::TestCase
   end
 
   def test_split_ipv6_invalid_characters_fail
-    assert_ipv6_failure("g::", "::1 ", "::1%25eth0", "%3A%3A1", "::-1", "é::")
+    assert_ipv6_failure("g::", "::1 ", "::1%25eth0", "%3A%3A1", "::-1", "\u00E9::")
   end
 
   def test_split_ipv6_embedded_ipv4
@@ -1385,8 +1385,8 @@ class URI::TestWHATWGParser < Test::Unit::TestCase
   def test_split_percent_encodes_non_ascii_as_utf8
     {
       "\u0080" => "%C2%80",
-      "é" => "%C3%A9",
-      "あ" => "%E3%81%82",
+      "\u00E9" => "%C3%A9",
+      "\u3042" => "%E3%81%82",
       "\u{1F600}" => "%F0%9F%98%80",
     }.each do |c, encoded|
       assert_equal("/#{encoded}", split("http://h/#{c}")[PATH], c)
@@ -1420,7 +1420,7 @@ class URI::TestWHATWGParser < Test::Unit::TestCase
   def test_split_encoded_path_is_not_a_dot_segment
     assert_equal("/a/.%20/b", path("http://h/a/.%20/b"))
     assert_equal("/a/.%20/b", path("http://h/a/. /b"))
-    assert_equal("/a/%E3%80%82/b", path("http://h/a/。/b"))
+    assert_equal("/a/%E3%80%82/b", path("http://h/a/\u3002/b"))
   end
 
   def test_split_special_query_quote_differs_from_non_special
@@ -1435,7 +1435,7 @@ class URI::TestWHATWGParser < Test::Unit::TestCase
   end
 
   def test_split_percent_encode_in_linear_time
-    pre = ->(n) { "http://h/" + "é" * n + "?" + "é" * n + "#" + "é" * n }
+    pre = ->(n) { "http://h/" + "\u00E9" * n + "?" + "\u00E9" * n + "#" + "\u00E9" * n }
     assert_linear_performance((1..4).map { |i| 10**i }, pre: pre) do |uri|
       split(uri)
     end
@@ -1979,7 +1979,7 @@ class URI::TestWHATWGParser < Test::Unit::TestCase
     assert_equal("a%1Fb", split("foo://a\x1Fb/")[HOST])
     assert_equal("a%7Fb", split("foo://a\x7Fb/")[HOST])
     assert_equal("a%C2%80b", split("foo://a\u0080b/")[HOST])
-    assert_equal("%C3%A9", split("foo://é/")[HOST])
+    assert_equal("%C3%A9", split("foo://\u00E9/")[HOST])
     assert_equal("%F0%9F%98%80", split("foo://\u{1F600}/")[HOST])
   end
 

@@ -11,20 +11,20 @@ class URI::TestWHATWGPunycode < Test::Unit::TestCase
     ["a", "a-"],
     ["abc", "abc-"],
     ["-> $1.00 <-", "-> $1.00 <--"],
-    ["ü", "tda"],
-    ["bücher", "bcher-kva"],
-    ["faß", "fa-hia"],
-    ["☕", "53h"],
-    ["日本語", "wgv71a119e"],
-    ["ハロー・ワールド", "gdkl8fhk5egc"],
-    ["3年B組金八先生", "3B-ww4c5e180e575a65lsy2b"],
+    ["\u00FC", "tda"],
+    ["b\u00FCcher", "bcher-kva"],
+    ["fa\u00DF", "fa-hia"],
+    ["\u2615", "53h"],
+    ["\u65E5\u672C\u8A9E", "wgv71a119e"],
+    ["\u30CF\u30ED\u30FC\u30FB\u30EF\u30FC\u30EB\u30C9", "gdkl8fhk5egc"],
+    ["3\u5E74B\u7D44\u91D1\u516B\u5148\u751F", "3B-ww4c5e180e575a65lsy2b"],
     # RFC 3492 7.1 (A) Arabic (Egyptian)
-    ["ليهمابتكلموشعربي؟",
+    ["\u0644\u064A\u0647\u0645\u0627\u0628\u062A\u0643\u0644\u0645\u0648\u0634\u0639\u0631\u0628\u064A\u061F",
      "egbpdaj6bu4bxfgehfvwxn"],
     # RFC 3492 7.1 (B) Chinese (simplified)
-    ["他们为什么不说中文", "ihqwcrb4cv8a8dqg056pqjye"],
-    ["é-", "--9fa"],
-    ["-é", "--bga"],
+    ["\u4ED6\u4EEC\u4E3A\u4EC0\u4E48\u4E0D\u8BF4\u4E2D\u6587", "ihqwcrb4cv8a8dqg056pqjye"],
+    ["\u00E9-", "--9fa"],
+    ["-\u00E9", "--bga"],
     # boundaries of the code space
     ["\u0080", "a"],
     ["\u007F\u0080", "\u007F-ba"],
@@ -44,7 +44,7 @@ class URI::TestWHATWGPunycode < Test::Unit::TestCase
   end
 
   def test_encode_returns_ascii
-    assert_predicate(Punycode.encode("日本語"), :ascii_only?)
+    assert_predicate(Punycode.encode("\u65E5\u672C\u8A9E"), :ascii_only?)
   end
 
   def test_decode_returns_utf8
@@ -53,11 +53,11 @@ class URI::TestWHATWGPunycode < Test::Unit::TestCase
   end
 
   def test_decode_digits_are_case_insensitive
-    assert_equal("bücher", Punycode.decode("bcher-KVA"))
+    assert_equal("b\u00FCcher", Punycode.decode("bcher-KVA"))
   end
 
   def test_decode_keeps_the_case_of_basic_code_points
-    assert_equal("BüCHER", Punycode.decode("BCHER-KVA"))
+    assert_equal("B\u00FCCHER", Punycode.decode("BCHER-KVA"))
   end
 
   def test_decode_lone_delimiter
@@ -69,8 +69,8 @@ class URI::TestWHATWGPunycode < Test::Unit::TestCase
   end
 
   def test_decode_rejects_non_ascii
-    assert_nil(Punycode.decode("ü"))
-    assert_nil(Punycode.decode("ü-tda"))
+    assert_nil(Punycode.decode("\u00FC"))
+    assert_nil(Punycode.decode("\u00FC-tda"))
   end
 
   def test_decode_rejects_invalid_digits
