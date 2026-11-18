@@ -237,6 +237,13 @@ module URI
         whatwg_url? && oth_whatwg_url && to_s == oth.to_s
       end
 
+      # A URL is already normalized by the URL Standard, which the
+      # normalization of RFC 3986 would make another URL of.
+      def normalize!
+        return super unless whatwg_url?
+        nil
+      end
+
       protected
 
       def whatwg_url?

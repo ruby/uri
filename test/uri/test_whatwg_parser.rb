@@ -272,6 +272,46 @@ class URI::TestWHATWGParser < Test::Unit::TestCase
     assert_raise(URI::BadURIError) { URI::WHATWG_PARSER.parse("http://h/a") - "x" }
   end
 
+  # --- normalize -----------------------------------------------------
+
+  # A URI built by WHATWG_PARSER is already normalized by the URL
+  # Standard. The normalization of RFC 3986 URIs would make another URL
+  # of it, such as by adding a path to a non-special URL or by changing
+  # the case of an opaque host.
+  def test_normalize_keeps_the_url
+    [
+      "foo://h",
+      "foo://H/",
+      "foo://H%c3%a9/",
+      "foo:",
+      "foo:/a",
+      "mailto:X",
+      "http://h/",
+      "http://h/a%c3%a9?Q#F",
+      "file:///C:/a",
+    ].each do |str|
+      uri = URI::WHATWG_PARSER.parse(str)
+      assert_equal(uri.to_s, uri.normalize.to_s, str)
+    end
+  end
+
+  def test_normalize_bang_keeps_the_url
+    uri = URI::WHATWG_PARSER.parse("foo://H")
+    uri.normalize!
+    assert_equal("foo://H", uri.to_s)
+  end
+
+  def test_normalized_uri_keeps_the_setters
+    uri = URI::WHATWG_PARSER.parse("http://h/").normalize
+    uri.host = "\u{E9}"
+    assert_equal("http://xn--9ca/", uri.to_s)
+  end
+
+  def test_rfc3986_uris_keep_their_normalization
+    assert_equal("foo://h/", URI::RFC3986_PARSER.parse("foo://H").normalize.to_s)
+    assert_equal("http://h/", URI::RFC3986_PARSER.parse("HTTP://H").normalize.to_s)
+  end
+
   # --- equality (URL equivalence) ------------------------------------
 
   # Two URIs built by WHATWG_PARSER are equal when their serializations

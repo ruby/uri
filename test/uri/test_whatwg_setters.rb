@@ -660,6 +660,6 @@ class URI::TestWHATWGSetters < Test::Unit::TestCase
     uri = url("foo://H/")
     uri.normalize!
     uri.fragment = "f"
-    assert_equal("foo://h/#f", uri.to_s)
+    assert_equal("foo://H/#f", uri.to_s)
   end
 end
