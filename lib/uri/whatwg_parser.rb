@@ -3,6 +3,14 @@ require_relative "whatwg_parser/punycode"
 require_relative "whatwg_parser/nfc"
 require_relative "whatwg_parser/idna"
 
+# A require in a non-main Ractor is not safe before Ruby 4.0, which runs
+# it in the main Ractor. Where Ractors are available before that, the
+# Unicode data, otherwise loaded on first use, is loaded here.
+if defined?(Ractor) && (RUBY_VERSION.split(".").map(&:to_i) <=> [4, 0]) < 0
+  URI::WHATWG_Parser::IDNA.load_data
+  URI::WHATWG_Parser::NFC.load_tables
+end
+
 module URI
   # A parser for the WHATWG URL Standard (https://url.spec.whatwg.org/).
   #

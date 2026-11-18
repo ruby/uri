@@ -894,6 +894,33 @@ class URI::TestWHATWGParser < Test::Unit::TestCase
     RUBY
   end
 
+  # Before Ruby 4.0, concurrent Ractors processing non-ASCII strings can
+  # corrupt memory even without uri (URI.encode_www_form_component of a
+  # non-ASCII string crashes as well), so this runs on Ruby 4.0 or later.
+  def test_split_non_ascii_domain_in_concurrent_ractors
+    omit "Ractor is not available" unless defined?(Ractor)
+    omit "Ractors before Ruby 4.0 are not stable enough" if (RUBY_VERSION.split(".").map(&:to_i) <=> [4, 0]) < 0
+    assert_separately(%w[-W0], <<~'RUBY')
+      require "uri"
+      ractors = 8.times.map { Ractor.new { URI::WHATWG_PARSER.parse("http://e\u{301}.example/").host } }
+      hosts = ractors.map { |r| r.respond_to?(:value) ? r.value : r.take }
+      assert_equal(["xn--9ca.example"] * 8, hosts)
+    RUBY
+  end
+
+  # A require in a non-main Ractor is not safe before Ruby 4.0, which
+  # runs it in the main Ractor, so the Unicode data, which is otherwise
+  # loaded on first use, is loaded with uri where Ractors are available.
+  def test_unicode_data_is_loaded_with_uri_only_where_ractors_cannot_require
+    assert_separately([], <<~'RUBY')
+      require "uri"
+      version = RUBY_VERSION.split(".").map(&:to_i)
+      eager = !!defined?(Ractor) && (version <=> [3, 0]) >= 0 && (version <=> [4, 0]) < 0
+      assert_equal(eager, URI::WHATWG_Parser::IDNA.const_defined?(:MAPPING, false), "IDNA data")
+      assert_equal(eager, URI::WHATWG_Parser::NFC.const_defined?(:COMPOSITION, false), "NFC tables")
+    RUBY
+  end
+
   def test_split_non_ascii_domain_in_linear_time
     distinct = ->(n) { "http://" + (0x4E00...0x4E00 + n).map { |c| c.chr(Encoding::UTF_8) }.join + "/" }
     assert_linear_performance([300, 1_000, 3_000, 10_000], pre: distinct) do |uri|

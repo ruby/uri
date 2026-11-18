@@ -7,7 +7,8 @@ module URI
     # version is the one of the running Ruby, and it cannot run in a
     # non-main Ractor.
     #
-    # The tables (nfc_tables.rb) are loaded on first use.
+    # The tables (nfc_tables.rb) are loaded on first use, or with
+    # whatwg_parser.rb where a Ractor cannot require them safely.
     module NFC # :nodoc:
       # Hangul syllable composition (Unicode Standard, section 3.12).
       S_BASE = 0xAC00

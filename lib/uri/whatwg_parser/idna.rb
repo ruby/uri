@@ -8,7 +8,8 @@ module URI
     # Transitional_Processing=false, VerifyDnsLength=false and
     # IgnoreInvalidPunycode=false.
     #
-    # The Unicode data (idna_data.rb) is loaded on first use.
+    # The Unicode data (idna_data.rb) is loaded on first use, or with
+    # whatwg_parser.rb where a Ractor cannot require it safely.
     module IDNA # :nodoc:
       ACE_PREFIX = "xn--"
       LABEL_SEPARATOR = "."
