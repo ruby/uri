@@ -97,7 +97,7 @@ module URI
     #   u1.eql?(u2) #=> false
     #
     def initialize(opts = {})
-      @pattern = initialize_pattern(opts)
+      @pattern = initialize_pattern(opts.transform_values(&:dup))
       @pattern.each_value(&:freeze)
       @pattern.freeze
 
