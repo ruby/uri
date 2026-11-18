@@ -1152,10 +1152,6 @@ module URI
     #   # => "http://my.example.com/main.rbx?page=1"
     #
     def merge(oth)
-      # The URL Standard resolves a reference while parsing it against a
-      # base, so URI::WHATWG_Parser does the whole merge.
-      return parser.__send__(:merge, self, oth) if parser.is_a?(WHATWG_Parser)
-
       rel = parser.__send__(:convert_to_uri, oth)
 
       if rel.absolute?
@@ -1238,17 +1234,8 @@ module URI
 
     # :stopdoc:
 
-    # Converts +oth+ to a URI for a route. URI::WHATWG_Parser builds
-    # absolute URIs only, so a relative reference is rejected here as
-    # #route_from0 rejects a relative URI.
-    def convert_to_route_uri(oth)
-      return parser.__send__(:convert_to_uri, oth) unless parser.is_a?(WHATWG_Parser)
-      parser.__send__(:absolute_uri, oth) or raise BadURIError, "relative URI: #{oth}"
-    end
-    private :convert_to_route_uri
-
     def route_from0(oth)
-      oth = convert_to_route_uri(oth)
+      oth = parser.__send__(:convert_to_uri, oth)
       if self.relative?
         raise BadURIError,
           "relative URI: #{self}"
@@ -1356,7 +1343,7 @@ module URI
     #   #=> #<URI::Generic /main.rbx?page=1>
     #
     def route_to(oth)
-      convert_to_route_uri(oth).route_from(self)
+      parser.__send__(:convert_to_uri, oth).route_from(self)
     end
 
     #

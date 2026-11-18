@@ -237,6 +237,19 @@ module URI
         whatwg_url? && oth_whatwg_url && to_s == oth.to_s
       end
 
+      # The URL Standard resolves a reference while parsing it against a
+      # base, so WHATWG_Parser does the whole merge.
+      def merge(oth)
+        return super unless whatwg_parser?
+        parser.__send__(:merge, self, oth)
+      end
+      alias + merge
+
+      def route_to(oth)
+        return super unless whatwg_parser?
+        route_uri(oth).route_from(self)
+      end
+
       # A URL is already normalized by the URL Standard, which the
       # normalization of RFC 3986 would make another URL of.
       def normalize!
@@ -272,6 +285,24 @@ module URI
         COMPONENT_VARIABLES.each do |name|
           instance_variable_set(name, oth.instance_variable_get(name))
         end
+      end
+
+      # Whether WHATWG_Parser built this URI, or the relative URI that
+      # #route_to returned for one.
+      def whatwg_parser?
+        parser.is_a?(WHATWG_Parser)
+      end
+
+      def route_from0(oth)
+        return super unless whatwg_parser?
+        super(route_uri(oth))
+      end
+
+      # Converts +oth+ to a URI for a route. WHATWG_Parser builds absolute
+      # URIs only, so a relative reference is rejected here as
+      # Generic#route_from0 rejects a relative URI.
+      def route_uri(oth)
+        parser.__send__(:absolute_uri, oth) or raise BadURIError, "relative URI: #{oth}"
       end
 
       # Applies a setter to the URL record of this URI, and replaces the
