@@ -211,11 +211,16 @@ module URI
         url.path = parse_path(rest, true, [], file: true, start: false)
         return
       end
-      unless buffer.empty?
-        host = parse_host(buffer, true)
-        url.host = host == "localhost" ? "" : host
-      end
+      url.host = file_host(buffer)
       url.path = parse_path(rest[host_end..-1], true, [], file: true)
+    end
+
+    # The host of a file URL, which is empty for an empty +buffer+ or
+    # localhost.
+    def file_host(buffer)
+      return "" if buffer.empty?
+      host = parse_host(buffer, true)
+      host == "localhost" ? "" : host
     end
 
     # https://url.spec.whatwg.org/#windows-drive-letter

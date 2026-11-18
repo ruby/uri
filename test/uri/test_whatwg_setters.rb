@@ -386,6 +386,25 @@ class URI::TestWHATWGSetters < Test::Unit::TestCase
     assert_rejected("file:///p", :host, "example.com:8080")
   end
 
+  def test_host_of_a_file_uri_is_parsed_as_a_special_host
+    assert_set("file:///p", "file://example.com/p", :host, "LOCALHOST")
+    assert_set("file:///p", "file://example.com/p", :host, "loc%41lhost")
+    assert_set("file://xn--9ca/p", "file:///p", :host, "\u{E9}")
+    assert_set("file://127.0.0.1/p", "file:///p", :host, "0x7f.1")
+    assert_set("file://[::1]/p", "file:///p", :host, "[::1]")
+    assert_rejected("file:///p", :host, "a b")
+    assert_rejected("file:///p", :host, "C:")
+    assert_rejected("file:///p", :host, "[::1")
+  end
+
+  def test_host_of_a_file_uri_up_to_a_path_query_or_fragment
+    assert_set("file://a/p", "file:///p", :host, "a/b")
+    assert_set("file://a/p", "file:///p", :host, "a\\b")
+    assert_set("file://a/p", "file:///p", :host, "a?b")
+    assert_set("file://a/p", "file:///p", :host, "a#b")
+    assert_set("file:///p", "file://example.com/p", :host, "/a")
+  end
+
   def test_hostname_wraps_ipv6
     uri = url("http://example.com/")
     uri.hostname = "::1"

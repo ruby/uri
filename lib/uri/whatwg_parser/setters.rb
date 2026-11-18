@@ -69,16 +69,10 @@ module URI
 
     # The file host state with a state override.
     def set_url_file_host(url, input)
-      buffer = input[/\A[^\/\\?#]*/]
-      if buffer.empty?
-        url.host = ""
-        return true
-      end
-
-      host = try_parse_host(buffer, true)
-      return false unless host
-      url.host = host == "localhost" ? "" : host
+      url.host = file_host(input[0, input.index(SPECIAL_AUTHORITY_END) || input.size])
       true
+    rescue InvalidURIError
+      false
     end
 
     def try_parse_host(buffer, special)
