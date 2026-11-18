@@ -48,6 +48,15 @@ module URI
   #
   #   URI::WHATWG_PARSER.parse("http://\u{65E5}\u{672C}\u{8A9E}.jp/").host
   #   # => "xn--wgv71a119e.jp"
+  #
+  # The setters of a URI it builds follow the setters of the URL
+  # Standard, and raise URI::InvalidComponentError for a value that the
+  # URL Standard ignores:
+  #
+  #   uri = URI::WHATWG_PARSER.parse("http://example.com/")
+  #   uri.port = "8080abc"
+  #   uri.to_s
+  #   # => "http://example.com:8080/"
   WHATWG_PARSER = WHATWG_Parser.new
   Ractor.make_shareable(WHATWG_PARSER) if defined?(Ractor)
 
