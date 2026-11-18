@@ -424,4 +424,78 @@ class WPT::TestHarness < Test::Unit::TestCase
     assert_equal({ ["hash", "b"] => WPT::Exclusions::UNCLASSIFIED },
                  WPT::Exclusions.update({}, cases, [["hash", "b"]], key: key))
   end
+  # --- run_route -----------------------------------------------------
+
+  # URIs of a parser stand-in for routes: the route from a base to a
+  # target is what +route+ returns, and a base plus a route resolves to
+  # what +resolve+ returns.
+  class FakeRouteParser
+    FakeURI = Struct.new(:str, :parser) do
+      def to_s
+        str
+      end
+
+      def route_to(target)
+        parser.route.call(str, target.to_s)
+      end
+
+      def +(route)
+        FakeURI.new(parser.resolve.call(str, route), parser)
+      end
+    end
+
+    attr_reader :route, :resolve
+
+    def initialize(route:, resolve:, bad: [])
+      @route = route
+      @resolve = resolve
+      @bad = bad
+    end
+
+    def parse(input)
+      raise URI::InvalidURIError, "fake failure" if @bad.include?(input)
+      FakeURI.new(input, self)
+    end
+
+    def join(base, input)
+      raise URI::InvalidURIError, "fake failure" if @bad.include?(input)
+      FakeURI.new("#{base}|#{input}", self)
+    end
+  end
+
+  def route_parser(**options)
+    FakeRouteParser.new(**{ route: ->(_base, target) { target }, resolve: ->(_base, route) { route } }.merge(options))
+  end
+
+  def test_run_route_passes_when_the_route_resolves_to_the_target
+    assert_nil(WPT::URLTestData.run_route({ "input" => "x", "base" => "b" }, route_parser))
+  end
+
+  def test_run_route_reports_a_route_resolving_elsewhere
+    parser = route_parser(route: ->(_base, _target) { "r" }, resolve: ->(_base, _route) { "elsewhere" })
+    message = WPT::URLTestData.run_route({ "input" => "x", "base" => "b" }, parser)
+    assert_equal('route: "r" from "b" resolves to "elsewhere", expected "b|x"', message)
+  end
+
+  def test_run_route_skips_cases_without_a_base
+    parser = route_parser(resolve: ->(_base, _route) { raise "not run" })
+    assert_nil(WPT::URLTestData.run_route({ "input" => "x", "base" => nil }, parser))
+  end
+
+  def test_run_route_skips_expected_failures
+    parser = route_parser(resolve: ->(_base, _route) { raise "not run" })
+    assert_nil(WPT::URLTestData.run_route({ "input" => "x", "base" => "b", "failure" => true }, parser))
+  end
+
+  def test_run_route_skips_a_base_or_an_input_that_fails
+    parser = route_parser(resolve: ->(_base, _route) { raise "not run" }, bad: ["b", "x"])
+    assert_nil(WPT::URLTestData.run_route({ "input" => "y", "base" => "b" }, parser))
+    assert_nil(WPT::URLTestData.run_route({ "input" => "x", "base" => "c" }, parser))
+  end
+
+  def test_run_route_reports_exceptions
+    parser = route_parser(route: ->(_base, _target) { raise URI::BadURIError, "boom" })
+    message = WPT::URLTestData.run_route({ "input" => "x", "base" => "b" }, parser)
+    assert_equal('route: unexpected URI::BadURIError: boom', message)
+  end
 end

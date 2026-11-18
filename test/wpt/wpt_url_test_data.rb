@@ -101,6 +101,28 @@ module WPT
 
       diffs.map { |k| "#{k}: expected #{test_case[k].inspect}, got #{actual[k].inspect}" }.join("\n")
     end
+
+    # Checks the route from the base of +test_case+ to the URL it parses
+    # to: the route must resolve back to that URL. Returns nil when it
+    # does, or when the case has no base or fails to parse, which #run
+    # checks; otherwise a message.
+    def run_route(test_case, parser)
+      base = test_case["base"]
+      return nil if base.nil? || test_case["failure"]
+
+      begin
+        base_uri = parser.parse(base)
+        target = parser.join(base, test_case["input"])
+      rescue URI::Error
+        return nil
+      end
+      route = base_uri.route_to(target)
+      resolved = base_uri + route
+      return nil if resolved.to_s == target.to_s
+      "route: #{route.to_s.inspect} from #{base.inspect} resolves to #{resolved.to_s.inspect}, expected #{target.to_s.inspect}"
+    rescue StandardError => e
+      "route: unexpected #{e.class}: #{e.message}"
+    end
   end
 
   # Harness for url/resources/toascii.json: each case is a host "input"

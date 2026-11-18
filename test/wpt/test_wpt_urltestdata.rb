@@ -32,6 +32,18 @@ class WPT::TestURLTestData < Test::Unit::TestCase
     flunk(message) if message
   end
 
+  CASES.each_with_index do |test_case, index|
+    next unless test_case["base"] && !test_case["failure"]
+    data(label(index, test_case), test_case)
+  end
+
+  # The route from the base of each case to the URL it parses to resolves
+  # back to that URL.
+  def test_route(test_case)
+    message = WPT::URLTestData.run_route(test_case, URI::WHATWG_PARSER)
+    flunk(message) if message
+  end
+
   def test_excluded_cases_still_fail
     passing = CASES.select do |test_case|
       EXCLUSIONS.key?(WPT::URLTestData.key(test_case)) &&
