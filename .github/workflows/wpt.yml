@@ -1,10 +1,10 @@
 name: WPT
 
-# Runs web-platform-tests' url/resources/urltestdata.json, fetched from WPT
-# master, against URI::WHATWG_PARSER (rake test:wpt). The same task runs
-# Unicode's IdnaTestV2.txt and NormalizationTest.txt for the Unicode
-# version of the IDNA data, and fails when Unicode has released a newer
-# version than that data.
+# Runs web-platform-tests' url/resources/urltestdata.json and toascii.json,
+# fetched from WPT master, against URI::WHATWG_PARSER (rake test:wpt). The
+# same task runs Unicode's IdnaTestV2.txt and NormalizationTest.txt for the
+# Unicode version of the IDNA data, and fails when Unicode has released a
+# newer version than that data.
 #
 # The URL Standard is a living standard and WPT follows its changes, so the
 # scheduled run is how a change in the standard is noticed: it fails when a

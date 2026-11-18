@@ -103,6 +103,36 @@ module WPT
     end
   end
 
+  # Harness for url/resources/toascii.json: each case is a host "input"
+  # and its expected ASCII "output", or null when parsing fails. As in
+  # WPT's toascii.window.js, the input is parsed as the host of
+  # "https://<input>/x". (The host and hostname setter checks of that
+  # file are not run: URI's setters do not follow the URL Standard.)
+  module ToASCIIData
+    DEFAULT_SOURCE = "https://raw.githubusercontent.com/web-platform-tests/wpt/master/url/resources/toascii.json"
+
+    module_function
+
+    # WPT_TOASCII (a local path or an https URL) if set, otherwise WPT
+    # master.
+    def source
+      ENV["WPT_TOASCII"] || DEFAULT_SOURCE
+    end
+
+    # Runs +test_case+ with +parser+. Returns nil when it passes, or a
+    # message.
+    def run(test_case, parser)
+      output = test_case["output"]
+      url_test_case = { "input" => "https://#{test_case["input"]}/x", "base" => nil }
+      if output.nil?
+        url_test_case["failure"] = true
+      else
+        url_test_case.merge!("host" => output, "hostname" => output, "pathname" => "/x", "href" => "https://#{output}/x")
+      end
+      URLTestData.run(url_test_case, parser)
+    end
+  end
+
   # The list of urltestdata cases that are known to fail, each with the
   # reason, stored as a JSON array of {"input", "base", "reason"}.
   module Exclusions
