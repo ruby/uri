@@ -99,6 +99,28 @@ class URI::TestWHATWGPunycode < Test::Unit::TestCase
     assert_nil(Punycode.decode("a-" + "9" * 10 + "a"))
   end
 
+  def test_encode_with_repeated_and_interleaved_code_points
+    # Each occurrence of a code point is counted against the code points
+    # smaller than it on both sides.
+    assert_equal("a\u{E9}b\u{E9}\u{FC}c\u{E9}", Punycode.decode(Punycode.encode("a\u{E9}b\u{E9}\u{FC}c\u{E9}")))
+    assert_equal("ab-9iab8gc", Punycode.encode("\u{E9}a\u{FC}\u{E9}b\u{FC}"))
+  end
+
+  def test_encode_in_linear_time
+    # The number of distinct code points must not multiply the time.
+    pre = ->(n) { (0x4E00...0x4E00 + n).map { |c| c.chr(Encoding::UTF_8) }.join }
+    assert_linear_performance([300, 1_000, 3_000, 10_000], pre: pre) do |label|
+      Punycode.encode(label)
+    end
+  end
+
+  def test_decode_in_linear_time
+    pre = ->(n) { Punycode.encode((0x4E00...0x4E00 + n).map { |c| c.chr(Encoding::UTF_8) }.join) }
+    assert_linear_performance([300, 1_000, 3_000, 10_000], pre: pre) do |punycode|
+      Punycode.decode(punycode)
+    end
+  end
+
   def test_decode_of_a_non_string
     assert_raise(NoMethodError, TypeError) { Punycode.decode(nil) }
   end

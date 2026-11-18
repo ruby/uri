@@ -24,42 +24,95 @@ module URI
       module_function
 
       # Encodes +input+, a String of Unicode code points, as Punycode.
+      #
+      # RFC 3492 scans the whole input once for each distinct non-basic
+      # code point, which takes time proportional to the length times the
+      # number of distinct code points. Instead, the positions of each
+      # code point are visited in order, and the code points smaller than
+      # it between two positions are counted with a Fenwick tree, which
+      # gives the same deltas.
       def encode(input)
         code_points = input.codepoints
         output = code_points.select { |c| c < INITIAL_N }.pack("U*")
         basic_count = handled = output.size
         output << DELIMITER if basic_count > 0
 
+        smaller = FenwickTree.new(code_points.size)
+        positions = Hash.new { |hash, c| hash[c] = [] }
+        code_points.each_with_index do |c, i|
+          c < INITIAL_N ? smaller.add(i) : positions[c] << i
+        end
+
         n = INITIAL_N
         delta = 0
         bias = INITIAL_BIAS
-        while handled < code_points.size
-          m = code_points.select { |c| c >= n }.min
+        positions.keys.sort.each do |m|
           delta += (m - n) * (handled + 1)
           n = m
-          code_points.each do |c|
-            delta += 1 if c < n
-            next unless c == n
-
-            q = delta
-            k = BASE
-            loop do
-              t = threshold(k, bias)
-              break if q < t
-              output << digit(t + (q - t) % (BASE - t))
-              q = (q - t) / (BASE - t)
-              k += BASE
-            end
-            output << digit(q)
+          previous = -1
+          positions[m].each do |i|
+            delta += smaller.count(previous + 1, i)
+            previous = i
+            encode_delta(output, delta, bias)
             bias = adapt(delta, handled + 1, handled == basic_count)
             delta = 0
             handled += 1
           end
+          delta += smaller.count(previous + 1, code_points.size)
+          positions[m].each { |i| smaller.add(i) }
           delta += 1
           n += 1
         end
         output
       end
+
+      # Appends +delta+ as a variable-length integer.
+      def encode_delta(output, delta, bias)
+        q = delta
+        k = BASE
+        loop do
+          t = threshold(k, bias)
+          break if q < t
+          output << digit(t + (q - t) % (BASE - t))
+          q = (q - t) / (BASE - t)
+          k += BASE
+        end
+        output << digit(q)
+      end
+
+      # Counts marked positions.
+      class FenwickTree # :nodoc:
+        def initialize(size)
+          @tree = Array.new(size + 1, 0)
+        end
+
+        # Marks position +i+.
+        def add(i)
+          i += 1
+          while i < @tree.size
+            @tree[i] += 1
+            i += i & -i
+          end
+        end
+
+        # The number of marked positions in first...last.
+        def count(first, last)
+          prefix(last) - prefix(first)
+        end
+
+        private
+
+        # The number of marked positions in 0...i.
+        def prefix(i)
+          sum = 0
+          while i > 0
+            sum += @tree[i]
+            i -= i & -i
+          end
+          sum
+        end
+      end
+      private_constant :FenwickTree
 
       # Decodes +input+, a Punycode String. Returns nil when +input+ is
       # not valid Punycode or decodes to something that is not a sequence

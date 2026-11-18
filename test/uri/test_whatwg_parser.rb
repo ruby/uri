@@ -713,6 +713,18 @@ class URI::TestWHATWGParser < Test::Unit::TestCase
     assert_equal("127.0.0.1", split("http://127\u{3002}0.0.1/")[HOST])
   end
 
+  def test_split_non_ascii_domain_in_linear_time
+    distinct = ->(n) { "http://" + (0x4E00...0x4E00 + n).map { |c| c.chr(Encoding::UTF_8) }.join + "/" }
+    assert_linear_performance([300, 1_000, 3_000, 10_000], pre: distinct) do |uri|
+      split(uri)
+    end
+    # Bidi Rule and CONTEXTJ (ZWNJ between transparent marks).
+    rtl = ->(n) { "http://" + "\u{5D0}\u{5B0}" * n + "." + "\u{628}\u{64B}\u{200C}\u{64B}\u{628}" * n + "/" }
+    assert_linear_performance([300, 1_000, 3_000, 10_000], pre: rtl) do |uri|
+      split(uri)
+    end
+  end
+
   def test_split_non_ascii_domain_rules_apply_to_every_special_scheme
     %w[https ws wss ftp].each do |scheme|
       assert_equal("xn--9ca", split("#{scheme}://\u{E9}/")[HOST], scheme)
