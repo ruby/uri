@@ -120,6 +120,28 @@ class IDNATestV2::TestHarness < Test::Unit::TestCase
     assert_match(/RuntimeError: boom/, IDNATestV2.run(c, ->(d) { raise "boom" }))
   end
 
+  def test_latest_unicode_version_from_readme
+    readme = <<~TXT
+      # Unicode Standard Data Files & Charts
+
+      This directory contains final data files and charts for version 18.0.0 of the
+      Unicode Character Database and for the synchronized Unicode Technical Standards.
+    TXT
+    assert_equal("18.0.0", IDNATestV2.latest_unicode_version(readme))
+  end
+
+  def test_latest_unicode_version_without_a_version
+    assert_raise(RuntimeError) { IDNATestV2.latest_unicode_version("no version here") }
+  end
+
+  def test_newer_unicode_version
+    assert_equal(true, IDNATestV2.newer?("18.1.0", "18.0.0"))
+    assert_equal(true, IDNATestV2.newer?("19.0.0", "18.0.0"))
+    assert_equal(true, IDNATestV2.newer?("18.0.10", "18.0.9"))
+    assert_equal(false, IDNATestV2.newer?("18.0.0", "18.0.0"))
+    assert_equal(false, IDNATestV2.newer?("17.0.0", "18.0.0"))
+  end
+
   def test_source_defaults_to_the_version_of_the_data
     assert_equal(
       "https://www.unicode.org/Public/#{IDNATestV2.unicode_version}/idna/IdnaTestV2.txt",

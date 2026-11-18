@@ -26,4 +26,16 @@ class IDNATestV2::TestConformance < Test::Unit::TestCase
     assert_not_empty(CASES, "no cases in #{SOURCE}")
     notify("IdnaTestV2: #{CASES.size} cases (source: #{SOURCE})")
   end
+
+  # Fails when Unicode has released a newer version than the generated
+  # data, so that the scheduled run reports it.
+  def test_idna_data_is_the_latest_unicode_version
+    current = IDNATestV2.unicode_version
+    latest = IDNATestV2.latest_unicode_version(WPT::URLTestData.fetch(IDNATestV2::LATEST_README))
+    assert(
+      !IDNATestV2.newer?(latest, current),
+      "Unicode #{latest} is out; the IDNA data is #{current}. " \
+      "Regenerate it with `UNICODE_VERSION=#{latest} rake idna:generate`."
+    )
+  end
 end

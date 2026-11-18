@@ -16,6 +16,9 @@ module IDNATestV2
   # label).
   IGNORED_STATUSES = %w[V2 V3 U1 A4_1 A4_2 X4_2].freeze
 
+  # The ReadMe of the latest version of the Unicode Character Database.
+  LATEST_README = "https://www.unicode.org/Public/UCD/latest/ReadMe.txt"
+
   ESCAPE = /\\u(\h{4})|\\x\{(\h+)\}/
   SURROGATES = (0xD800..0xDFFF).freeze
 
@@ -35,6 +38,16 @@ module IDNATestV2
   # default_source.
   def source
     ENV["IDNA_TEST_V2"] || default_source
+  end
+
+  # The Unicode version that +readme+ (LATEST_README) is for.
+  def latest_unicode_version(readme)
+    readme[/data files and charts for version (\d+\.\d+\.\d+)/, 1] or
+      raise "no Unicode version in #{LATEST_README}"
+  end
+
+  def newer?(version, other)
+    Gem::Version.new(version) > Gem::Version.new(other)
   end
 
   def load(source)
