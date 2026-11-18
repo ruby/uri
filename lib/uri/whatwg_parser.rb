@@ -739,6 +739,25 @@ module URI
       input.gsub(encode_set) { |c| c.unpack("C*").map { |b| format("%%%02X", b) }.join }
     end
 
+    # Generic#merge. The URL Standard resolves a reference while parsing
+    # it against a base. A relative +base+, which Generic#route_to can
+    # return, is merged with an absolute URI only, as in Generic#merge.
+    def merge(base, reference)
+      return join(base, reference) if base.absolute?
+      absolute_uri(reference) or raise BadURIError, "both URI are relative"
+    end
+
+    # Returns +uri+ converted to a URI if it is absolute, or nil if it is
+    # a relative reference.
+    def absolute_uri(uri)
+      return (uri.absolute? ? uri : nil) if uri.is_a?(URI::Generic)
+
+      str = String.try_convert(uri)
+      raise ArgumentError, "bad argument (expected URI object or URI string)" unless str
+      scheme, = parse_scheme(preprocess(to_utf8(str)))
+      scheme ? parse(str) : nil
+    end
+
     def convert_to_uri(uri)
       if uri.is_a?(URI::Generic)
         uri

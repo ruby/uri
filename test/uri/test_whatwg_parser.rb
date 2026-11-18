@@ -160,6 +160,53 @@ class URI::TestWHATWGParser < Test::Unit::TestCase
     assert_raise(ArgumentError) { URI::WHATWG_PARSER.__send__(:convert_to_uri, 1) }
   end
 
+  # --- Generic#merge of a relative URI -------------------------------
+
+  # Generic#route_to can return a relative URI bound to WHATWG_PARSER.
+  # Merging into it behaves as for an RFC 3986 URI: an absolute URI is
+  # returned, and a relative reference raises BadURIError.
+  def relative_whatwg_uri
+    uri = URI::WHATWG_PARSER.parse("http://h/a/b").route_to("http://h/a/c")
+    assert_predicate(uri, :relative?)
+    assert_same(URI::WHATWG_PARSER, uri.parser)
+    uri
+  end
+
+  def test_merge_relative_reference_into_relative_uri
+    ["x", "", "#f", "?q", "/x", "//h/x", "../x"].each do |reference|
+      assert_raise(URI::BadURIError, reference.dump) { relative_whatwg_uri.merge(reference) }
+    end
+  end
+
+  def test_merge_relative_uri_object_into_relative_uri
+    assert_raise(URI::BadURIError) { relative_whatwg_uri.merge(relative_whatwg_uri) }
+  end
+
+  def test_merge_absolute_string_into_relative_uri
+    uri = relative_whatwg_uri.merge("HTTP://H/x")
+    assert_equal("http://h/x", uri.to_s)
+    assert_same(URI::WHATWG_PARSER, uri.parser)
+    assert_equal("http://h/x", relative_whatwg_uri.merge(" \thttp://h/x ").to_s)
+  end
+
+  def test_merge_absolute_uri_object_into_relative_uri
+    absolute = URI::WHATWG_PARSER.parse("http://h/x")
+    assert_same(absolute, relative_whatwg_uri.merge(absolute))
+  end
+
+  def test_merge_invalid_absolute_string_into_relative_uri
+    assert_raise(URI::InvalidURIError) { relative_whatwg_uri.merge("http://[/") }
+  end
+
+  def test_merge_other_object_into_relative_uri
+    assert_raise(ArgumentError) { relative_whatwg_uri.merge(1) }
+    assert_raise(ArgumentError) { relative_whatwg_uri.merge(nil) }
+  end
+
+  def test_plus_relative_reference_into_relative_uri
+    assert_raise(URI::BadURIError) { relative_whatwg_uri + "x" }
+  end
+
   # --- equality (URL equivalence) ------------------------------------
 
   # Two URIs built by WHATWG_PARSER are equal when their serializations
