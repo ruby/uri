@@ -16,6 +16,20 @@ class URI::TestGeneric < Test::Unit::TestCase
     uri.class.component.collect {|c| uri.send(c)}
   end
 
+
+  def test_query_and_fragment_use_to_str_result
+    converted = "a b".freeze
+    value = Object.new
+    value.define_singleton_method(:to_str) { converted }
+    uri = URI("https://example.test/path")
+
+    uri.query = value
+    uri.fragment = value
+
+    assert_equal("https://example.test/path?a%20b#a%20b", uri.to_s)
+    assert_equal("a b", converted)
+  end
+
   def test_to_s
     exp = 'http://example.com/'.freeze
     str = URI(exp).to_s
