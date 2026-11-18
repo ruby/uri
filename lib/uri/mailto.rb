@@ -222,7 +222,8 @@ module URI
       @headers = []
       if v
         v.split('&').each do |x|
-          @headers << x.split(/=/, 2)
+          name, value = x.split(/=/, 2)
+          @headers << [name, value || '']
         end
       end
     end
@@ -266,18 +267,20 @@ module URI
     #   # => "To: ruby-list@ruby-lang.org\nSubject: subscribe\nCc: myaddr\n\n\n"
     #
     def to_mailtext
-      to = URI.decode_www_form_component(@to)
+      to = URI.decode_www_form_component(@to.to_s)
       head = ''
       body = ''
       @headers.each do |x|
-        case x[0]
+        name = x[0].to_s
+        value = x[1].to_s
+        case name
         when 'body'
-          body = URI.decode_www_form_component(x[1])
+          body = URI.decode_www_form_component(value)
         when 'to'
-          to << ', ' + URI.decode_www_form_component(x[1])
+          to << ', ' + URI.decode_www_form_component(value)
         else
-          head << URI.decode_www_form_component(x[0]).capitalize + ': ' +
-            URI.decode_www_form_component(x[1])  + "\n"
+          head << URI.decode_www_form_component(name).capitalize + ': ' +
+            URI.decode_www_form_component(value)  + "\n"
         end
       end
 

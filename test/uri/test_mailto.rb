@@ -253,6 +253,16 @@ class URI::TestMailTo < Test::Unit::TestCase
       u.to_mailtext
   end
 
+  def test_to_mailtext_with_header_name_only
+    u = URI.parse('mailto:ruby-list@ruby-lang.org?Subject')
+    assert_equal [['Subject', '']], u.headers
+    assert_equal "To: ruby-list@ruby-lang.org\nSubject: \n\n\n", u.to_mailtext
+
+    u = URI.parse('mailto:ruby-list@ruby-lang.org?body&cc=myaddr')
+    assert_equal [['body', ''], ['cc', 'myaddr']], u.headers
+    assert_equal "To: ruby-list@ruby-lang.org\nCc: myaddr\n\n\n", u.to_mailtext
+  end
+
   def test_select
     u = URI.parse('mailto:joe@example.com?cc=bob@example.com&body=hello')
     assert_equal(uri_to_ary(u), u.select(*u.component))
