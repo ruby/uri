@@ -523,4 +523,85 @@ class URI::TestWHATWGSetters < Test::Unit::TestCase
   def test_fragment_removed_from_an_opaque_path_ending_with_a_space
     assert_set("sc:a%20", "sc:a #f", :fragment, nil)
   end
+  # --- the URL record behind a URI -----------------------------------
+
+  # A setter applies to the URL record that the URI serializes, so
+  # every other part is kept as it is.
+  URLS_KEPT_BY_SETTERS = [
+    "http://example.com/",
+    "http://u:p@example.com:8080/a/b?q#f",
+    "http://u@example.com/",
+    "http://:p@example.com/",
+    "http://example.com/?#",
+    "http://example.com/a/",
+    "http://example.com//a//b",
+    "http://192.168.0.1/",
+    "http://[::1]:8080/",
+    "http://xn--9ca/",
+    "https://example.com:443/",
+    "ws://example.com:80/",
+    "file:///",
+    "file:///C:/a",
+    "file://host/a",
+    "foo://",
+    "foo:///",
+    "foo://h",
+    "foo://h/",
+    "foo://H/%C3%A9",
+    "foo://h:1/a",
+    "foo:",
+    "foo:/",
+    "foo:/a/b",
+    "foo:/.//a/b",
+    "foo:/..//a",
+    "foo:/a/..//b",
+    "mailto:x",
+    "mailto:x?q",
+    "mailto:x?",
+    "sc:a%20",
+    "sc:a%20?q",
+    "sc:",
+    "sc:?q",
+  ].freeze
+
+  def test_setters_keep_the_other_parts
+    URLS_KEPT_BY_SETTERS.each do |str|
+      expected = url(str).to_s
+      uri = url(str)
+      uri.fragment = "f2"
+      assert_equal(expected.sub(/#.*\z/, "") + "#f2", uri.to_s, str)
+      uri.fragment = nil
+      assert_equal(expected.sub(/#.*\z/, ""), uri.to_s, str)
+    end
+  end
+
+  def test_setters_keep_the_components
+    URLS_KEPT_BY_SETTERS.each do |str|
+      uri = url(str)
+      uri.fragment = uri.fragment
+      fresh = url(str)
+      %i[scheme user password host port path opaque query fragment].each do |component|
+        assert_equal(fresh.public_send(component), uri.public_send(component), "#{str}: #{component}")
+      end
+    end
+  end
+
+  def test_setters_apply_to_the_hostless_path_written_with_a_dot
+    assert_set("foo:/.//a/c", "foo:/.//a/b", :path, "//a/c")
+    assert_set("foo:/.//a/b?q", "foo:/.//a/b", :query, "q")
+    assert_set("foo:/a", "foo:/.//a/b", :path, "a")
+  end
+
+  def test_setters_apply_to_an_opaque_path_with_a_query
+    assert_set("mailto:x?r", "mailto:x?q", :query, "r")
+    assert_set("mailto:x", "mailto:x?q", :query, nil)
+    assert_set("mailto:x?q#f", "mailto:x?q", :fragment, "f")
+  end
+
+  def test_setters_after_normalize
+    uri = url("foo://H/")
+    uri.normalize!
+    uri.fragment = "f"
+    assert_equal("foo://h/#f", uri.to_s)
+  end
 end

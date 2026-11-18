@@ -134,6 +134,16 @@ class URI::TestWHATWGParser < Test::Unit::TestCase
     )
   end
 
+  def test_join_does_not_share_strings_with_the_base
+    base = URI::WHATWG_PARSER.parse("http://u:p@h/a?q#f")
+    joined = URI::WHATWG_PARSER.join(base, "#g")
+    %i[scheme user password host path query].each do |component|
+      value = base.public_send(component)
+      value << "x" unless value.frozen?
+    end
+    assert_equal("http://u:p@h/a?q#g", joined.to_s)
+  end
+
   def test_join_returns_given_uri_object_unchanged
     uri = URI::WHATWG_PARSER.parse("http://example.com/")
 

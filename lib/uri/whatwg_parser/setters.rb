@@ -293,7 +293,7 @@ module URI
       # strings converted to UTF-8.
       def update_whatwg_url(component, value)
         parser = self.parser
-        url = parser.__send__(:basic_parse, to_s)
+        url = parser.__send__(:url_record, self)
         unless yield(parser, url, utf8_value(parser, component, value))
           raise InvalidComponentError, "bad component(expected #{component} component): #{value.inspect}"
         end

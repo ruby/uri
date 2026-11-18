@@ -44,7 +44,7 @@ module URI
       uris[1..-1].inject(convert_to_uri(uris[0])) do |base, uri|
         reference = uri.is_a?(URI::Generic) ? uri.to_s : String.try_convert(uri)
         raise ArgumentError, "bad argument (expected URI object or URI string)" unless reference
-        build(to_components(basic_parse(reference, basic_parse(base.to_s))))
+        build(to_components(basic_parse(reference, url_record(base))))
       end
     end
 
@@ -289,6 +289,31 @@ module URI
         path = "/.#{path}" if url.host.nil? && url.path.size > 1 && url.path[0].empty?
         [url.scheme, userinfo, url.host, port, nil, path, nil, url.query, url.fragment]
       end
+    end
+
+    # The URL record of +uri+. The components of a URI that this parser
+    # built are those of a URL record, already serialized, so the record
+    # is rebuilt from them, the reverse of #to_components; any other URI
+    # is parsed. The strings are copied, as a URI built from the record
+    # must not share them with +uri+.
+    def url_record(uri)
+      return basic_parse(uri.to_s) unless uri.__send__(:whatwg_url?)
+
+      scheme = uri.scheme.dup
+      port = uri.port == SPECIAL_SCHEMES[scheme] ? nil : uri.port
+      url = URLRecord.new(scheme, uri.user.to_s.dup, uri.password.to_s.dup, uri.host&.dup, port, nil,
+                          uri.query&.dup, uri.fragment&.dup)
+      if uri.opaque
+        path, question, query = uri.opaque.partition("?")
+        url.path = path
+        url.query = question.empty? ? nil : query
+      else
+        path = uri.path
+        path = path[2..-1] if url.host.nil? && path.start_with?("/.//")
+        # Each segment follows a "/".
+        url.path = path.split("/", -1).drop(1)
+      end
+      url
     end
 
     def split_query_and_fragment(rest)
