@@ -57,6 +57,15 @@ module URI
   #   uri.port = "8080abc"
   #   uri.to_s
   #   # => "http://example.com:8080/"
+  #
+  # As for any URI, scheme= does not change the class of the object.
+  # Parse the URI again to get the class of its new scheme:
+  #
+  #   uri.scheme = "https"
+  #   uri
+  #   # => #<URI::HTTP https://example.com:8080/>
+  #   URI::WHATWG_PARSER.parse(uri.to_s)
+  #   # => #<URI::HTTPS https://example.com:8080/>
   WHATWG_PARSER = WHATWG_Parser.new
   Ractor.make_shareable(WHATWG_PARSER) if defined?(Ractor)
 

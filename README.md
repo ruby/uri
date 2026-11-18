@@ -81,6 +81,15 @@ uri.port = "abc"
 # raises URI::InvalidComponentError
 ```
 
+As for any URI, `scheme=` does not change the class of the object. Parse the URI again to get the class of its new scheme, before handing it to code that checks the class, such as open-uri, which uses TLS for a `URI::HTTPS` only:
+
+```ruby
+uri = URI::WHATWG_PARSER.parse("http://example.com/")
+uri.scheme = "https"
+uri                                 #=> #<URI::HTTP https://example.com/>
+URI::WHATWG_PARSER.parse(uri.to_s)  #=> #<URI::HTTPS https://example.com/>
+```
+
 ## Development
 
 After checking out the repo, run `bin/setup` to install dependencies. Then, run `rake test` to run the tests. You can also run `bin/console` for an interactive prompt that will allow you to experiment.

@@ -182,10 +182,24 @@ class URI::TestWHATWGSetters < Test::Unit::TestCase
     assert_set("https://example.com/", "http://example.com/", :scheme, "https")
   end
 
+  # The class of an object cannot change, as for RFC 3986 URIs; parsing
+  # the URI again gives the class of its new scheme.
   def test_scheme_keeps_the_class
     uri = url("http://example.com/")
     uri.scheme = "https"
-    assert_kind_of(URI::HTTP, uri)
+    assert_instance_of(URI::HTTP, uri)
+    assert_equal("https://example.com/", uri.to_s)
+    assert_equal(443, uri.port)
+    assert_instance_of(URI::HTTPS, URI::WHATWG_PARSER.parse(uri.to_s))
+
+    uri = url("https://example.com/")
+    uri.scheme = "http"
+    assert_instance_of(URI::HTTPS, uri)
+    assert_instance_of(URI::HTTP, URI::WHATWG_PARSER.parse(uri.to_s))
+
+    uri = url("foo://example.com/")
+    uri.scheme = "bar"
+    assert_instance_of(URI::Generic, uri)
   end
 
   # --- user= and password= -------------------------------------------
