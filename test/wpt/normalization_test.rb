@@ -54,11 +54,13 @@ module NormalizationTest
   def run(test_case, nfc)
     c = test_case[:columns]
     checks = [[0, 1], [1, 1], [2, 1], [3, 3], [4, 3]]
-    failures = checks.filter_map do |source, expected|
+    # Array#filter_map needs Ruby 2.7, and rake test runs the harness on
+    # older versions too.
+    failures = checks.map do |source, expected|
       actual = nfc.call(c[source])
       next if actual == c[expected]
       "NFC(c#{source + 1}) = #{dump(actual)}, expected c#{expected + 1} = #{dump(c[expected])}"
-    end
+    end.compact
     failures.empty? ? nil : failures.join("\n")
   rescue StandardError => e
     "#{e.class}: #{e.message}"
