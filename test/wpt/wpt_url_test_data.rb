@@ -106,8 +106,10 @@ module WPT
   # Harness for url/resources/toascii.json: each case is a host "input"
   # and its expected ASCII "output", or null when parsing fails. As in
   # WPT's toascii.window.js, the input is parsed as the host of
-  # "https://<input>/x". (The host and hostname setter checks of that
-  # file are not run: URI's setters do not follow the URL Standard.)
+  # "https://<input>/x" (run), and set with the hostname setter, which
+  # is URI's host=, on "https://x/x" (run_setter). The host setter check
+  # of that file is not run, as URI has no setter that takes a port;
+  # without a port in any input, it would give the same result.
   module ToASCIIData
     DEFAULT_SOURCE = "https://raw.githubusercontent.com/web-platform-tests/wpt/master/url/resources/toascii.json"
 
@@ -130,6 +132,23 @@ module WPT
         url_test_case.merge!("host" => output, "hostname" => output, "pathname" => "/x", "href" => "https://#{output}/x")
       end
       URLTestData.run(url_test_case, parser)
+    end
+
+    # Runs the hostname setter check of +test_case+ with +parser+. A host
+    # that fails to parse is ignored, which keeps the host "x". Returns
+    # nil when it passes, or a message.
+    def run_setter(test_case, parser)
+      uri = parser.parse("https://x/x")
+      begin
+        uri.host = test_case["input"]
+      rescue URI::InvalidComponentError
+        # The setter ignores the value.
+      end
+      expected = test_case["output"] || "x"
+      return nil if uri.host == expected
+      "hostname setter: expected #{expected.inspect}, got #{uri.host.inspect}"
+    rescue StandardError => e
+      "hostname setter: unexpected #{e.class}: #{e.message}"
     end
   end
 
