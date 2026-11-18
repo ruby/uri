@@ -74,6 +74,60 @@ class URI::TestWHATWGSetters < Test::Unit::TestCase
     assert_equal(8080, (uri.port = 8080))
   end
 
+  # --- encodings of the values ---------------------------------------
+
+  # A value is converted to UTF-8 before it is percent-encoded, as the
+  # input of the parser is.
+  def test_values_are_converted_to_utf8
+    latin1 = "\u{E9}".encode("ISO-8859-1")
+    assert_set("http://%C3%A9@example.com/", "http://example.com/", :user, latin1)
+    assert_set("http://:%C3%A9@example.com/", "http://example.com/", :password, latin1)
+    assert_set("http://xn--9ca/", "http://example.com/", :host, latin1)
+    assert_set("http://example.com/%C3%A9", "http://example.com/", :path, latin1)
+    assert_set("http://example.com/?%C3%A9", "http://example.com/", :query, latin1)
+    assert_set("http://example.com/#%C3%A9", "http://example.com/", :fragment, latin1)
+  end
+
+  def test_userinfo_is_converted_to_utf8
+    latin1 = "\u{E9}:\u{E9}".encode("ISO-8859-1")
+    assert_set("http://%C3%A9:%C3%A9@example.com/", "http://example.com/", :userinfo, latin1)
+    assert_set("http://%C3%A9:%C3%A9@example.com/", "http://example.com/", :userinfo,
+               ["\u{E9}".encode("ISO-8859-1"), "\u{E9}".encode("ISO-8859-1")])
+  end
+
+  def test_ascii_incompatible_values
+    assert_set("https://example.com/", "http://example.com/", :scheme, "https".encode("UTF-16LE"))
+    assert_set("http://u@example.com/", "http://example.com/", :user, "u".encode("UTF-16LE"))
+    assert_set("http://h/", "http://example.com/", :host, "h".encode("UTF-16BE"))
+    assert_set("http://example.com:8080/", "http://example.com/", :port, "8080".encode("UTF-16LE"))
+    assert_set("http://example.com/a%09b", "http://example.com/", :path, "a%09b".encode("UTF-16LE"))
+    assert_set("http://example.com/?a%20%C3%A9", "http://example.com/", :query, "a \u{E9}".encode("UTF-16LE"))
+    assert_set("http://example.com/#x", "http://example.com/", :fragment, "x".encode("UTF-32LE"))
+  end
+
+  def test_ascii_only_binary_values
+    assert_set("http://example.com/?abc", "http://example.com/", :query, "abc".b)
+  end
+
+  def test_values_with_invalid_byte_sequences
+    invalid = "\xFF".dup.force_encoding("UTF-8")
+    %i[scheme user password userinfo host port path query fragment].each do |attribute|
+      assert_rejected("http://example.com/", attribute, invalid)
+    end
+    assert_rejected("http://example.com/", :userinfo, ["u", invalid])
+  end
+
+  def test_values_that_cannot_be_converted_to_utf8
+    assert_rejected("http://example.com/", :query, "\xE9".b)
+    assert_rejected("http://example.com/", :host, "\xE9".b)
+  end
+
+  def test_the_value_is_returned_as_given
+    uri = url("http://example.com/")
+    latin1 = "\u{E9}".encode("ISO-8859-1")
+    assert_same(latin1, (uri.query = latin1))
+  end
+
   # --- scheme= (protocol setter) -------------------------------------
 
   def test_scheme

@@ -186,17 +186,17 @@ module URI
     module GenericSetters # :nodoc:
       def scheme=(v)
         return super unless whatwg_url?
-        update_whatwg_url(:scheme, v) { |parser, url| parser.__send__(:set_url_scheme, url, v) }
+        update_whatwg_url(:scheme, v) { |parser, url, value| parser.__send__(:set_url_scheme, url, value) }
       end
 
       def user=(v)
         return super unless whatwg_url?
-        update_whatwg_url(:user, v) { |parser, url| parser.__send__(:set_url_username, url, v.to_s) }
+        update_whatwg_url(:user, v) { |parser, url, value| parser.__send__(:set_url_username, url, value.to_s) }
       end
 
       def password=(v)
         return super unless whatwg_url?
-        update_whatwg_url(:password, v) { |parser, url| parser.__send__(:set_url_password, url, v.to_s) }
+        update_whatwg_url(:password, v) { |parser, url, value| parser.__send__(:set_url_password, url, value.to_s) }
       end
 
       # Sets the username and the password from "user:password", split at
@@ -204,25 +204,25 @@ module URI
       # are removed.
       def userinfo=(v)
         return super unless whatwg_url?
-        username, password = v.is_a?(Array) ? v : v.to_s.split(":", 2)
-        update_whatwg_url(:userinfo, v) do |parser, url|
+        update_whatwg_url(:userinfo, v) do |parser, url, value|
+          username, password = value.is_a?(Array) ? value : value.to_s.split(":", 2)
           parser.__send__(:set_url_userinfo, url, username.to_s, password.to_s)
         end
       end
 
       def host=(v)
         return super unless whatwg_url?
-        update_whatwg_url(:host, v) { |parser, url| parser.__send__(:set_url_hostname, url, v) }
+        update_whatwg_url(:host, v) { |parser, url, value| parser.__send__(:set_url_hostname, url, value) }
       end
 
       def port=(v)
         return super unless whatwg_url?
-        update_whatwg_url(:port, v) { |parser, url| parser.__send__(:set_url_port, url, v) }
+        update_whatwg_url(:port, v) { |parser, url, value| parser.__send__(:set_url_port, url, value) }
       end
 
       def path=(v)
         return super unless whatwg_url?
-        update_whatwg_url(:path, v) { |parser, url| parser.__send__(:set_url_path, url, v) }
+        update_whatwg_url(:path, v) { |parser, url, value| parser.__send__(:set_url_path, url, value) }
       end
 
       # The URL Standard has no setter for an opaque path, and a URL with
@@ -234,12 +234,12 @@ module URI
 
       def query=(v)
         return super unless whatwg_url?
-        update_whatwg_url(:query, v) { |parser, url| parser.__send__(:set_url_query, url, v) }
+        update_whatwg_url(:query, v) { |parser, url, value| parser.__send__(:set_url_query, url, value) }
       end
 
       def fragment=(v)
         return super unless whatwg_url?
-        update_whatwg_url(:fragment, v) { |parser, url| parser.__send__(:set_url_fragment, url, v) }
+        update_whatwg_url(:fragment, v) { |parser, url, value| parser.__send__(:set_url_fragment, url, value) }
       end
 
       # The default port of the scheme, which can change with #scheme=
@@ -280,11 +280,12 @@ module URI
       end
 
       # Applies a setter to the URL record of this URI, and replaces the
-      # components with the result.
+      # components with the result. The setter is given +value+ with its
+      # strings converted to UTF-8.
       def update_whatwg_url(component, value)
         parser = self.parser
         url = parser.__send__(:basic_parse, to_s)
-        unless yield(parser, url)
+        unless yield(parser, url, utf8_value(parser, component, value))
           raise InvalidComponentError, "bad component(expected #{component} component): #{value.inspect}"
         end
 
@@ -298,6 +299,19 @@ module URI
         @fragment = fragment
         @port = port ? port.to_i : default_port
         value
+      end
+
+      def utf8_value(parser, component, value)
+        case value
+        when String
+          parser.__send__(:to_utf8, value)
+        when Array
+          value.map { |v| utf8_value(parser, component, v) }
+        else
+          value
+        end
+      rescue InvalidURIError
+        raise InvalidComponentError, "bad component(expected #{component} component): #{value.inspect}"
       end
     end
 
