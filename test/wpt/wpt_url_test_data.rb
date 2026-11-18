@@ -138,13 +138,16 @@ module WPT
   module Exclusions
     UNCLASSIFIED = "unclassified"
     PATH = File.expand_path("urltestdata_exclusions.json", __dir__)
+    # The fields of an entry that identify a case of urltestdata.json.
+    FIELDS = %w[input base].freeze
 
     module_function
 
-    # Returns a Hash of [input, base] => reason.
-    def load(path)
+    # Returns a Hash of key => reason, where the key is the values of
+    # +fields+ in each entry.
+    def load(path, fields: FIELDS)
       JSON.parse(File.read(path)).each_with_object({}) do |entry, result|
-        key = [entry["input"], entry["base"]]
+        key = entry.values_at(*fields)
         reason = entry["reason"]
         raise ArgumentError, "duplicate exclusion: #{key.inspect}" if result.key?(key)
         raise ArgumentError, "exclusion without reason: #{key.inspect}" if reason.nil? || reason.empty?
@@ -152,24 +155,24 @@ module WPT
       end
     end
 
-    def save(path, exclusions)
-      entries = exclusions.map { |(input, base), reason| { "input" => input, "base" => base, "reason" => reason } }
+    def save(path, exclusions, fields: FIELDS)
+      entries = exclusions.map { |key, reason| fields.zip(key).to_h.merge("reason" => reason) }
       File.write(path, JSON.pretty_generate(entries) + "\n")
     end
 
-    # Keys of +exclusions+ that no longer match any case in +cases+.
-    def stale(exclusions, cases)
-      present = cases.map { |c| URLTestData.key(c) }
-      exclusions.keys - present
+    # Keys of +exclusions+ that no longer match any case in +cases+, with
+    # +key+ giving the key of a case.
+    def stale(exclusions, cases, key: URLTestData.method(:key))
+      exclusions.keys - cases.map(&key)
     end
 
     # Rebuilds the exclusions from the keys of the currently +failing+
     # cases, keeping known reasons and marking new ones UNCLASSIFIED.
     # Cases that pass now, or that are gone from +cases+, are dropped.
     # The result follows the order of +cases+.
-    def update(exclusions, cases, failing)
+    def update(exclusions, cases, failing, key: URLTestData.method(:key))
       failing = failing.to_a
-      cases.map { |c| URLTestData.key(c) }.select { |k| failing.include?(k) }.each_with_object({}) do |k, result|
+      cases.map(&key).select { |k| failing.include?(k) }.each_with_object({}) do |k, result|
         result[k] = exclusions.fetch(k, UNCLASSIFIED)
       end
     end

@@ -404,4 +404,24 @@ class WPT::TestHarness < Test::Unit::TestCase
       WPT::Exclusions.update({}, cases, failing).keys
     )
   end
+
+  def test_exclusions_with_other_fields
+    fields = %w[setter href new_value]
+    entries = { ["port", "http://x/", "1"] => "r" }
+    Dir.mktmpdir do |dir|
+      path = File.join(dir, "exclusions.json")
+      WPT::Exclusions.save(path, entries, fields: fields)
+      assert_equal([{ "setter" => "port", "href" => "http://x/", "new_value" => "1", "reason" => "r" }],
+                   JSON.parse(File.read(path)))
+      assert_equal(entries, WPT::Exclusions.load(path, fields: fields))
+    end
+  end
+
+  def test_exclusions_stale_and_update_with_another_key
+    key = ->(c) { [c["setter"], c["href"]] }
+    cases = [{ "setter" => "port", "href" => "a" }, { "setter" => "hash", "href" => "b" }]
+    assert_equal([["port", "gone"]], WPT::Exclusions.stale({ ["port", "gone"] => "r", ["port", "a"] => "r" }, cases, key: key))
+    assert_equal({ ["hash", "b"] => WPT::Exclusions::UNCLASSIFIED },
+                 WPT::Exclusions.update({}, cases, [["hash", "b"]], key: key))
+  end
 end
