@@ -291,6 +291,12 @@ class URI::TestWHATWGSetters < Test::Unit::TestCase
     assert_set("foo://example.com/", "foo://example.com:8080/", :port, nil)
   end
 
+  def test_port_of_only_tabs_and_newlines
+    # Only the empty string removes the port; tabs and newlines are
+    # removed afterwards and leave no digits.
+    assert_rejected("http://example.com:8080/", :port, "\n\t")
+  end
+
   def test_port_without_a_host
     assert_rejected("file://example.com/", :port, 8080)
     assert_rejected("foo:///p", :port, 8080)

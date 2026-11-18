@@ -100,13 +100,14 @@ module URI
     def set_url_port(url, value)
       return false if cannot_have_credentials_or_port?(url)
 
-      input = remove_tab_and_newline(value)
-      if input.empty?
+      # Only the empty string removes the port, before tabs and newlines
+      # are removed.
+      if value.to_s.empty?
         url.port = nil
         return true
       end
 
-      digits = input[/\A[0-9]*/]
+      digits = remove_tab_and_newline(value)[/\A[0-9]*/]
       return false if digits.empty?
       port = digits.to_i
       return false if port > MAX_PORT
