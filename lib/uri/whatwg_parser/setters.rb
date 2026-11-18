@@ -37,6 +37,13 @@ module URI
       true
     end
 
+    # The username and password setters together, for a userinfo that
+    # the basic URL parser would split at its first ":".
+    # Both reject the same URLs, so either both are applied or neither.
+    def set_url_userinfo(url, username, password)
+      set_url_username(url, username) && set_url_password(url, password)
+    end
+
     # The hostname setter: the hostname state with a state override, or
     # the file host state for a file URL.
     def set_url_hostname(url, value)
@@ -192,6 +199,17 @@ module URI
         update_whatwg_url(:password, v) { |parser, url| parser.__send__(:set_url_password, url, v.to_s) }
       end
 
+      # Sets the username and the password from "user:password", split at
+      # the first ":", or from [user, password]. Empty or nil credentials
+      # are removed.
+      def userinfo=(v)
+        return super unless whatwg_url?
+        username, password = v.is_a?(Array) ? v : v.to_s.split(":", 2)
+        update_whatwg_url(:userinfo, v) do |parser, url|
+          parser.__send__(:set_url_userinfo, url, username.to_s, password.to_s)
+        end
+      end
+
       def host=(v)
         return super unless whatwg_url?
         update_whatwg_url(:host, v) { |parser, url| parser.__send__(:set_url_hostname, url, v) }
@@ -205,6 +223,13 @@ module URI
       def path=(v)
         return super unless whatwg_url?
         update_whatwg_url(:path, v) { |parser, url| parser.__send__(:set_url_path, url, v) }
+      end
+
+      # The URL Standard has no setter for an opaque path, and a URL with
+      # a host cannot get one, so any value is rejected.
+      def opaque=(v)
+        return super unless whatwg_url?
+        raise InvalidComponentError, "bad component(expected opaque component): #{v.inspect}"
       end
 
       def query=(v)

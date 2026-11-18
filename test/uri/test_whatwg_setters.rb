@@ -175,6 +175,78 @@ class URI::TestWHATWGSetters < Test::Unit::TestCase
     assert_rejected("mailto:x", :user, "u")
   end
 
+  # --- userinfo= (username and password setters) ---------------------
+
+  def test_userinfo
+    assert_set("http://u:p@example.com/", "http://example.com/", :userinfo, "u:p")
+    assert_set("http://me:pw@example.com/", "http://u:p@example.com/", :userinfo, "me:pw")
+  end
+
+  def test_userinfo_without_a_colon_clears_the_password
+    assert_set("http://u@example.com/", "http://x:y@example.com/", :userinfo, "u")
+  end
+
+  def test_userinfo_is_split_at_the_first_colon
+    assert_set("http://u:a%3Ab@example.com/", "http://example.com/", :userinfo, "u:a:b")
+    assert_set("http://:p@example.com/", "http://u@example.com/", :userinfo, ":p")
+    assert_set("http://u@example.com/", "http://example.com/", :userinfo, "u:")
+  end
+
+  def test_userinfo_is_percent_encoded
+    assert_set("http://a%20b%40c:d%20e@example.com/", "http://example.com/", :userinfo, "a b@c:d e")
+    assert_set("http://%C3%A9:%C3%A9@example.com/", "http://example.com/", :userinfo, "\u{E9}:\u{E9}")
+  end
+
+  def test_userinfo_keeps_tabs
+    assert_set("http://a%09b:c%0Ad@example.com/", "http://example.com/", :userinfo, "a\tb:c\nd")
+  end
+
+  def test_userinfo_as_an_array
+    assert_set("http://u:a%3Ab@example.com/", "http://example.com/", :userinfo, ["u", "a:b"])
+    assert_set("http://u@example.com/", "http://x:y@example.com/", :userinfo, ["u"])
+    assert_set("http://u@example.com/", "http://x:y@example.com/", :userinfo, ["u", nil])
+  end
+
+  def test_empty_userinfo_clears_the_credentials
+    assert_set("http://example.com/", "http://u:p@example.com/", :userinfo, "")
+    assert_set("http://example.com/", "http://u:p@example.com/", :userinfo, ":")
+    assert_set("http://example.com/", "http://u:p@example.com/", :userinfo, nil)
+  end
+
+  def test_userinfo_without_a_host
+    assert_rejected("file:///p", :userinfo, "u:p")
+    assert_rejected("file://h/p", :userinfo, "u:p")
+    assert_rejected("foo:///p", :userinfo, "u:p")
+    assert_rejected("foo:/p", :userinfo, "u:p")
+    assert_rejected("mailto:x", :userinfo, "u:p")
+    assert_rejected("foo:///p", :userinfo, nil)
+  end
+
+  def test_userinfo_value_is_returned
+    uri = url("http://example.com/")
+    assert_equal("u:p", (uri.userinfo = "u:p"))
+  end
+
+  def test_userinfo_keeps_the_uri_reparsable
+    uri = url("foo://h/x")
+    uri.userinfo = "a b"
+    uri.path = "y"
+    assert_equal("foo://a%20b@h/y", uri.to_s)
+  end
+
+  # --- opaque= -------------------------------------------------------
+
+  # The URL Standard has no setter for an opaque path, and a URL with a
+  # host cannot get one.
+  def test_opaque_is_rejected
+    assert_rejected("mailto:x", :opaque, "y")
+    assert_rejected("http://example.com/", :opaque, "zz")
+    assert_rejected("foo:///x", :opaque, "zz")
+    assert_rejected("mailto:x", :opaque, "")
+    assert_rejected("mailto:x", :opaque, nil)
+    assert_rejected("http://example.com/", :opaque, nil)
+  end
+
   # --- host= (hostname setter) ---------------------------------------
 
   def test_host
