@@ -160,6 +160,76 @@ class URI::TestWHATWGParser < Test::Unit::TestCase
     assert_raise(ArgumentError) { URI::WHATWG_PARSER.__send__(:convert_to_uri, 1) }
   end
 
+  # --- equality (URL equivalence) ------------------------------------
+
+  # Two URIs built by WHATWG_PARSER are equal when their serializations
+  # are (https://url.spec.whatwg.org/#url-equivalence); the URIs are not
+  # normalized as RFC 3986 URIs are.
+  def test_equal_uris
+    assert_equal(URI::WHATWG_PARSER.parse("http://h/a?q#f"), URI::WHATWG_PARSER.parse("http://h/a?q#f"))
+    assert_equal(URI::WHATWG_PARSER.parse("HTTP://H"), URI::WHATWG_PARSER.parse("http://h/"))
+    assert_equal(URI::WHATWG_PARSER.parse("http://h:80/"), URI::WHATWG_PARSER.parse("http://h/"))
+    assert_equal(URI::WHATWG_PARSER.parse("mailto:x"), URI::WHATWG_PARSER.parse("mailto:x"))
+  end
+
+  def test_non_special_uris_with_and_without_an_empty_path_differ
+    assert_not_equal(URI::WHATWG_PARSER.parse("foo://h"), URI::WHATWG_PARSER.parse("foo://h/"))
+    assert_not_equal(URI::WHATWG_PARSER.parse("foo://h/"), URI::WHATWG_PARSER.parse("foo://h"))
+  end
+
+  def test_opaque_hosts_differing_in_case_differ
+    assert_not_equal(URI::WHATWG_PARSER.parse("foo://H/"), URI::WHATWG_PARSER.parse("foo://h/"))
+  end
+
+  def test_uris_differing_in_a_component_differ
+    base = URI::WHATWG_PARSER.parse("http://u:p@h:8080/a?q#f")
+    [
+      "https://u:p@h:8080/a?q#f",
+      "http://x:p@h:8080/a?q#f",
+      "http://u:x@h:8080/a?q#f",
+      "http://u:p@x:8080/a?q#f",
+      "http://u:p@h:8081/a?q#f",
+      "http://u:p@h:8080/x?q#f",
+      "http://u:p@h:8080/a?x#f",
+      "http://u:p@h:8080/a?q#x",
+      "http://u:p@h:8080/a?q",
+      "http://u:p@h:8080/a#f",
+      "http://u:p@h:8080/a?q#",
+    ].each do |str|
+      assert_not_equal(base, URI::WHATWG_PARSER.parse(str), str)
+    end
+  end
+
+  def test_equality_after_a_setter
+    uri = URI::WHATWG_PARSER.parse("http://h/")
+    uri.path = "a"
+    assert_equal(URI::WHATWG_PARSER.parse("http://h/a"), uri)
+  end
+
+  # scheme= keeps the class, which the URL Standard does not have.
+  def test_equality_ignores_the_class
+    uri = URI::WHATWG_PARSER.parse("http://h/")
+    uri.scheme = "https"
+    assert_instance_of(URI::HTTP, uri)
+    assert_equal(URI::WHATWG_PARSER.parse("https://h/"), uri)
+    assert_equal(uri, URI::WHATWG_PARSER.parse("https://h/"))
+  end
+
+  def test_whatwg_and_rfc3986_uris_differ
+    assert_not_equal(URI::WHATWG_PARSER.parse("http://h/"), URI::RFC3986_PARSER.parse("http://h/"))
+    assert_not_equal(URI::RFC3986_PARSER.parse("http://h/"), URI::WHATWG_PARSER.parse("http://h/"))
+  end
+
+  def test_rfc3986_uris_keep_their_equality
+    assert_equal(URI::RFC3986_PARSER.parse("http://h"), URI::RFC3986_PARSER.parse("http://h/"))
+    assert_equal(URI::RFC3986_PARSER.parse("foo://H/"), URI::RFC3986_PARSER.parse("foo://h/"))
+  end
+
+  def test_uri_is_not_equal_to_a_string
+    assert_not_equal(URI::WHATWG_PARSER.parse("http://h/"), "http://h/")
+    assert_not_equal(URI::WHATWG_PARSER.parse("http://h/"), nil)
+  end
+
   # --- RFC2396-compatible methods (obsolete, delegated) --------------
 
   def test_extract_delegates_to_rfc2396

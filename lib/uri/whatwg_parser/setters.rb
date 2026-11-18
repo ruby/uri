@@ -177,10 +177,10 @@ module URI
       url.host.nil? || url.host == "" || url.scheme == "file"
     end
 
-    # Makes the setters of a URI built by WHATWG_Parser follow the URL
-    # Standard. Prepended to URI::Generic; a URI that WHATWG_Parser did
-    # not build, or one that is still being initialized, keeps the
-    # setters of URI::Generic.
+    # Makes the setters and the equality of a URI built by WHATWG_Parser
+    # follow the URL Standard. Prepended to URI::Generic; a URI that
+    # WHATWG_Parser did not build, or one that is still being
+    # initialized, keeps the methods of URI::Generic.
     #
     # A value that the URL Standard ignores raises InvalidComponentError.
     module GenericSetters # :nodoc:
@@ -249,7 +249,20 @@ module URI
         SPECIAL_SCHEMES[@scheme]
       end
 
+      # Two URIs built by WHATWG_Parser are equal when their
+      # serializations are (URL equivalence), whatever their classes. One
+      # built by WHATWG_Parser is not equal to one that is not.
+      def ==(oth)
+        oth_whatwg_url = oth.is_a?(Generic) && oth.whatwg_url?
+        return super unless whatwg_url? || oth_whatwg_url
+        whatwg_url? && oth_whatwg_url && to_s == oth.to_s
+      end
+
       protected
+
+      def whatwg_url?
+        defined?(@whatwg_url) && @whatwg_url
+      end
 
       # Marks a URI that WHATWG_Parser has finished building.
       def whatwg_url!
@@ -273,10 +286,6 @@ module URI
         COMPONENT_VARIABLES.each do |name|
           instance_variable_set(name, oth.instance_variable_get(name))
         end
-      end
-
-      def whatwg_url?
-        defined?(@whatwg_url) && @whatwg_url
       end
 
       # Applies a setter to the URL record of this URI, and replaces the
