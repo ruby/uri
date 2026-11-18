@@ -207,6 +207,61 @@ class URI::TestWHATWGParser < Test::Unit::TestCase
     assert_raise(URI::BadURIError) { relative_whatwg_uri + "x" }
   end
 
+  # --- Generic#route_to / #route_from with a relative URI ------------
+
+  # As for RFC 3986 URIs, a route needs two absolute URIs, and a relative
+  # one raises BadURIError.
+  def test_route_to_relative_reference
+    uri = URI::WHATWG_PARSER.parse("http://h/a")
+    ["x", "", "#f", "?q", "/x", "//h/x"].each do |reference|
+      error = assert_raise(URI::BadURIError, reference.dump) { uri.route_to(reference) }
+      assert_equal("relative URI: #{reference}", error.message)
+    end
+  end
+
+  def test_route_from_relative_reference
+    uri = URI::WHATWG_PARSER.parse("http://h/a")
+    ["x", "", "#f", "?q", "/x", "//h/x"].each do |reference|
+      assert_raise(URI::BadURIError, reference.dump) { uri.route_from(reference) }
+    end
+  end
+
+  def test_route_to_and_from_relative_uri_object
+    uri = URI::WHATWG_PARSER.parse("http://h/a")
+    assert_raise(URI::BadURIError) { uri.route_to(relative_whatwg_uri) }
+    assert_raise(URI::BadURIError) { uri.route_from(relative_whatwg_uri) }
+  end
+
+  def test_route_of_relative_uri
+    assert_raise(URI::BadURIError) { relative_whatwg_uri.route_to("http://h/a") }
+    assert_raise(URI::BadURIError) { relative_whatwg_uri.route_from("http://h/a") }
+    assert_raise(URI::BadURIError) { relative_whatwg_uri.route_to("x") }
+    assert_raise(URI::BadURIError) { relative_whatwg_uri.route_from("x") }
+  end
+
+  def test_route_to_and_from_absolute_string
+    uri = URI::WHATWG_PARSER.parse("http://h/a/b")
+    assert_equal("c", uri.route_to("http://h/a/c").to_s)
+    assert_equal("c", uri.route_to(" HTTP://H/a/c ").to_s)
+    assert_equal("b", uri.route_from("http://h/a/c").to_s)
+  end
+
+  def test_route_to_and_from_invalid_absolute_string
+    uri = URI::WHATWG_PARSER.parse("http://h/a")
+    assert_raise(URI::InvalidURIError) { uri.route_to("http://[/") }
+    assert_raise(URI::InvalidURIError) { uri.route_from("http://[/") }
+  end
+
+  def test_route_to_and_from_other_object
+    uri = URI::WHATWG_PARSER.parse("http://h/a")
+    assert_raise(ArgumentError) { uri.route_to(1) }
+    assert_raise(ArgumentError) { uri.route_from(nil) }
+  end
+
+  def test_minus_relative_reference
+    assert_raise(URI::BadURIError) { URI::WHATWG_PARSER.parse("http://h/a") - "x" }
+  end
+
   # --- equality (URL equivalence) ------------------------------------
 
   # Two URIs built by WHATWG_PARSER are equal when their serializations

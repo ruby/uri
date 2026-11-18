@@ -1237,8 +1237,18 @@ module URI
     # :startdoc:
 
     # :stopdoc:
+
+    # Converts +oth+ to a URI for a route. URI::WHATWG_Parser builds
+    # absolute URIs only, so a relative reference is rejected here as
+    # #route_from0 rejects a relative URI.
+    def convert_to_route_uri(oth)
+      return parser.__send__(:convert_to_uri, oth) unless parser.is_a?(WHATWG_Parser)
+      parser.__send__(:absolute_uri, oth) or raise BadURIError, "relative URI: #{oth}"
+    end
+    private :convert_to_route_uri
+
     def route_from0(oth)
-      oth = parser.__send__(:convert_to_uri, oth)
+      oth = convert_to_route_uri(oth)
       if self.relative?
         raise BadURIError,
           "relative URI: #{self}"
@@ -1346,7 +1356,7 @@ module URI
     #   #=> #<URI::Generic /main.rbx?page=1>
     #
     def route_to(oth)
-      parser.__send__(:convert_to_uri, oth).route_from(self)
+      convert_to_route_uri(oth).route_from(self)
     end
 
     #
