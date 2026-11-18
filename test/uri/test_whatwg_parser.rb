@@ -310,6 +310,115 @@ class URI::TestWHATWGParser < Test::Unit::TestCase
     assert_raise(URI::BadURIError) { URI::WHATWG_PARSER.parse("http://h/a") - "x" }
   end
 
+  # --- Generic#route_to / #route_from between URLs -------------------
+
+  # The route from +base+ to +target+ is the shortest reference that
+  # resolves to +target+ against +base+ by the URL Standard.
+  def assert_route(expected, base, target)
+    base_uri = URI::WHATWG_PARSER.parse(base)
+    target_uri = URI::WHATWG_PARSER.parse(target)
+    route = base_uri.route_to(target)
+    message = "#{base} -> #{target}"
+    assert_equal(expected, route.to_s, message)
+    assert_equal(target_uri.to_s, (base_uri + route).to_s, message)
+    assert_equal(expected, target_uri.route_from(base).to_s, message)
+    assert_equal(expected, (target_uri - base_uri).to_s, message)
+  end
+
+  def test_route_to_the_same_url
+    assert_route("", "http://a/b", "http://a/b")
+    assert_route("", "http://a/b?q", "http://a/b?q")
+    assert_route("#f", "http://a/b#f", "http://a/b#f")
+  end
+
+  def test_route_to_a_fragment
+    assert_route("#f", "http://a/b", "http://a/b#f")
+    assert_route("", "http://a/b#f", "http://a/b")
+    assert_route("#", "http://a/b", "http://a/b#")
+  end
+
+  def test_route_to_a_query
+    assert_route("?r", "http://a/b?q", "http://a/b?r")
+    assert_route("?r#f", "http://a/b", "http://a/b?r#f")
+    assert_route("?", "http://a/b", "http://a/b?")
+    assert_route("?%27%zz{|}", "http://a/b", "http://a/b?'%zz{|}")
+    assert_route("?'%zz{|}", "foo://a/b", "foo://a/b?'%zz{|}")
+  end
+
+  def test_route_to_a_url_without_the_query_of_the_base
+    assert_route("c", "http://a/b/c?x", "http://a/b/c")
+    assert_route("./", "http://a/b/?x", "http://a/b/")
+    assert_route("./a:b", "http://a/a:b?x", "http://a/a:b")
+  end
+
+  def test_route_to_a_path
+    assert_route("d", "http://a/b/c", "http://a/b/d")
+    assert_route("../x", "http://a/b/c", "http://a/x")
+    assert_route("c/d", "http://a/b/", "http://a/b/c/d")
+    assert_route("d?q#f", "http://a/b/c", "http://a/b/d?q#f")
+    assert_route("./a:b", "http://a/", "http://a/a:b")
+  end
+
+  def test_route_to_a_path_with_empty_segments
+    assert_route("//a//x", "http://a/", "http://a//x")
+    assert_route("x//y", "http://a/b/", "http://a/b/x//y")
+  end
+
+  def test_route_to_another_authority
+    assert_route("//b/c", "http://a/c", "http://b/c")
+    assert_route("//a/", "http://u@a/", "http://a/")
+    assert_route("//u:p@a/", "http://a/", "http://u:p@a/")
+    assert_route("//a/", "http://a:81/", "http://a/")
+    assert_route("//a:81/x", "http://a/", "http://a:81/x")
+  end
+
+  def test_route_to_another_scheme
+    assert_route("https://a/b", "http://a/b", "https://a/b")
+    assert_route("foo://a/b", "http://a/b", "foo://a/b")
+  end
+
+  def test_route_to_a_non_special_url_with_an_empty_path
+    assert_route("//h", "foo://h/a", "foo://h")
+    assert_route("/", "foo://h", "foo://h/")
+    assert_route("?q", "foo://h", "foo://h?q")
+  end
+
+  def test_route_between_hostless_urls
+    assert_route("c", "foo:/a/b", "foo:/a/c")
+    assert_route("/.//b", "foo:/a", "foo:/.//b")
+  end
+
+  def test_route_between_opaque_paths
+    assert_route("mailto:a?y", "mailto:a?x", "mailto:a?y")
+    assert_route("mailto:b", "mailto:a", "mailto:b")
+    assert_route("#f", "mailto:a", "mailto:a#f")
+    # Only a fragment resolves against an opaque path.
+    assert_route("mailto:a", "mailto:a#f", "mailto:a")
+  end
+
+  def test_route_between_file_urls
+    assert_route("b", "file:///C:/a", "file:///C:/b")
+    assert_route("//h/a", "file:///a", "file://h/a")
+  end
+
+  def test_route_is_bound_to_whatwg_parser
+    route = URI::WHATWG_PARSER.parse("http://a/b/c").route_to("http://a/b/d")
+    assert_predicate(route, :relative?)
+    assert_same(URI::WHATWG_PARSER, route.parser)
+  end
+
+  def test_route_to_another_scheme_is_an_absolute_url
+    route = URI::WHATWG_PARSER.parse("http://a/b").route_to("https://a/b")
+    assert_predicate(route, :absolute?)
+    route.host = "\u{E9}"
+    assert_equal("https://xn--9ca/b", route.to_s)
+  end
+
+  def test_route_to_an_rfc3986_uri
+    route = URI::WHATWG_PARSER.parse("http://a/b/c").route_to(URI::RFC3986_PARSER.parse("HTTP://A/b/d"))
+    assert_equal("d", route.to_s)
+  end
+
   # --- serialization -------------------------------------------------
 
   # The URL serializer writes "//" only for a URL with a host, which

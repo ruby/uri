@@ -259,8 +259,18 @@ module URI
 
       def route_to(oth)
         return super unless whatwg_parser?
-        route_uri(oth).route_from(self)
+        parser.__send__(:convert_to_uri, route_uri(oth)).route_from(self)
       end
+
+      # The shortest reference that resolves to this URL against +oth+ by
+      # the URL Standard, as WHATWG_Parser finds it.
+      def route_from(oth)
+        return super unless whatwg_parser?
+        base = parser.__send__(:convert_to_uri, route_uri(oth))
+        raise BadURIError, "relative URI: #{self}" if relative?
+        parser.__send__(:route, base, self)
+      end
+      alias - route_from
 
       # A URL is already normalized by the URL Standard, which the
       # normalization of RFC 3986 would make another URL of.
@@ -305,14 +315,9 @@ module URI
         parser.is_a?(WHATWG_Parser)
       end
 
-      def route_from0(oth)
-        return super unless whatwg_parser?
-        super(route_uri(oth))
-      end
-
       # Converts +oth+ to a URI for a route. WHATWG_Parser builds absolute
       # URIs only, so a relative reference is rejected here as
-      # Generic#route_from0 rejects a relative URI.
+      # Generic#route_from rejects a relative URI.
       def route_uri(oth)
         parser.__send__(:absolute_uri, oth) or raise BadURIError, "relative URI: #{oth}"
       end

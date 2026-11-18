@@ -792,6 +792,60 @@ module URI
       absolute_uri(reference) or raise BadURIError, "both URI are relative"
     end
 
+    # Generic#route_from: the first of the references from #route_candidates
+    # that resolves to +target+ against +base+, or a copy of +target+.
+    def route(base, target)
+      expected = target.to_s
+      route_candidates(base, target).each do |reference|
+        return reference if resolves_to?(base, reference, expected)
+      end
+      target.dup
+    end
+
+    # The references that may resolve to +target+ against +base+, shortest
+    # first: the fragment, the query, the path relative to the path of
+    # +base+, the path, and the authority with the path. A URL with an
+    # opaque path is the base of a fragment only.
+    #
+    # The relative path is empty for the path of +base+, which keeps the
+    # query of +base+, so its last segment is tried too.
+    def route_candidates(base, target)
+      return [] unless base.scheme == target.scheme
+
+      query = target.query
+      fragment = target.fragment
+      candidates = [relative_reference(fragment: fragment)]
+      return candidates if base.opaque || target.opaque
+
+      candidates << relative_reference(query: query, fragment: fragment) if query
+      path = target.path
+      relative_path = target.__send__(:route_from_path, base.path, path)
+      candidates << relative_reference(path: relative_path, query: query, fragment: fragment)
+      if relative_path.empty?
+        segment = path[%r{[^/]*\z}]
+        segment = "./#{segment}" if segment.empty? || segment.include?(":")
+        candidates << relative_reference(path: segment, query: query, fragment: fragment)
+      end
+      candidates << relative_reference(path: path, query: query, fragment: fragment)
+      port = target.port == SPECIAL_SCHEMES[target.scheme] ? nil : target.port
+      candidates << relative_reference(userinfo: target.userinfo, host: target.host, port: port,
+                                       path: path, query: query, fragment: fragment)
+    end
+
+    def resolves_to?(base, reference, expected)
+      join(base, reference).to_s == expected
+    rescue InvalidURIError
+      false
+    end
+
+    # A relative URI bound to this parser. The query, which may hold
+    # characters that Generic#query= would escape, is set as it is.
+    def relative_reference(userinfo: nil, host: nil, port: nil, path: "", query: nil, fragment: nil)
+      uri = Generic.new(nil, userinfo, host, port, nil, path, nil, nil, fragment, self)
+      uri.__send__(:set_query, query) if query
+      uri
+    end
+
     # Returns +uri+ converted to a URI if it is absolute, or nil if it is
     # a relative reference.
     def absolute_uri(uri)
