@@ -11,6 +11,8 @@ class IDNADataGenerator
     joining_type: "ucd/extracted/DerivedJoiningType.txt",
     combining_class: "ucd/extracted/DerivedCombiningClass.txt",
     general_category: "ucd/extracted/DerivedGeneralCategory.txt",
+    unicode_data: "ucd/UnicodeData.txt",
+    normalization_props: "ucd/DerivedNormalizationProps.txt",
   }.freeze
 
   # Canonical_Combining_Class=Virama
@@ -70,6 +72,24 @@ class IDNADataGenerator
             BIDI_EN = #{char_class(intersect(bidi_class("EN"), valid))}
             BIDI_ES_CS_ET_ON_BN = #{char_class(intersect(bidi_class("ES", "CS", "ET", "ON", "BN"), valid))}
             BIDI_NSM = #{char_class(intersect(bidi_class("NSM"), valid))}
+
+            # Canonical_Combining_Class of each code point whose class is
+            # not 0.
+            COMBINING_CLASS = {
+      #{hash_entries(combining_classes) { |ccc| ccc.to_s }.join("\n")}
+            }.freeze
+
+            # The canonical decomposition mapping (one level) of each code
+            # point that has one. Hangul syllables are not listed: they are
+            # decomposed algorithmically.
+            CANONICAL_DECOMPOSITION = {
+      #{hash_entries(canonical_decompositions) { |target| escape(target) }.join("\n")}
+            }.freeze
+
+            # The code points with a canonical decomposition into two code
+            # points that are excluded from composition
+            # (Full_Composition_Exclusion).
+            COMPOSITION_EXCLUSION = #{char_class(composition_exclusions)}
           end
         end
       end
@@ -144,9 +164,43 @@ class IDNADataGenerator
   end
 
   def mapping_entries(mapped)
-    mapped.sort.each_slice(4).map do |slice|
-      "        " + slice.map { |c, target| "#{escape([c])} => #{escape(target)}," }.join(" ")
+    hash_entries(mapped) { |target| escape(target) }
+  end
+
+  # Lines of Hash entries keyed by code point, with values formatted by
+  # the block.
+  def hash_entries(hash)
+    hash.sort.each_slice(4).map do |slice|
+      "        " + slice.map { |c, value| "#{escape([c])} => #{yield value}," }.join(" ")
     end
+  end
+
+  # {code point => Canonical_Combining_Class} for classes other than 0.
+  def combining_classes
+    classes = {}
+    each_line(:combining_class) do |range, fields|
+      ccc = Integer(fields[0], 10)
+      range.each { |c| classes[c] = ccc } unless ccc == 0
+    end
+    classes
+  end
+
+  # {code point => [code points]}: the canonical decomposition mappings
+  # in UnicodeData.txt. A compatibility mapping starts with "<tag>".
+  def canonical_decompositions
+    @canonical_decompositions ||= {}.tap do |decompositions|
+      each_line(:unicode_data) do |range, fields|
+        mapping = fields[4]
+        next if mapping.empty? || mapping.start_with?("<")
+        decompositions[range.first] = mapping.split.map(&:hex)
+      end
+    end
+  end
+
+  def composition_exclusions
+    excluded = property("normalization_props") { |v| v == "Full_Composition_Exclusion" }
+    pairs = canonical_decompositions.select { |_, target| target.size == 2 }.keys
+    merge(pairs.select { |c| excluded.any? { |range| range.cover?(c) } }.map { |c| c..c })
   end
 
   def escape(code_points)
