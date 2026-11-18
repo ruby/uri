@@ -2,7 +2,7 @@ require "rake/testtask"
 
 namespace :test do
   Rake::TestTask.new(:wpt) do |t|
-    t.description = "Run web-platform-tests urltestdata.json against URI::WHATWG_PARSER (needs network unless WPT_URLTESTDATA is a local file)"
+    t.description = "Run WPT urltestdata.json and Unicode IdnaTestV2.txt against URI::WHATWG_PARSER (needs network unless WPT_URLTESTDATA and IDNA_TEST_V2 are local files)"
     t.libs << "lib"
     t.test_files = FileList["test/wpt/test_*.rb"]
   end
