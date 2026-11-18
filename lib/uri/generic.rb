@@ -1624,3 +1624,5 @@ module URI
     end
   end
 end
+
+require_relative "whatwg_parser/setters"

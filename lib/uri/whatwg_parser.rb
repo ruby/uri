@@ -254,6 +254,7 @@ module URI
       arguments = [*components, nil, fragment, self]
       uri = SCHEMES_WITH_CLASS.include?(components[0]) ? URI.for(*arguments) : Generic.new(*arguments)
       uri.__send__(:set_query, query) if query
+      uri.__send__(:whatwg_url!)
       uri
     end
 
