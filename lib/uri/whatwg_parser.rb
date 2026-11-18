@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 require_relative "whatwg_parser/punycode"
+require_relative "whatwg_parser/idna"
 
 module URI
   # A parser for the WHATWG URL Standard (https://url.spec.whatwg.org/).
