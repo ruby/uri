@@ -282,6 +282,43 @@ module URI
     #
     attr_reader :fragment
 
+    #
+    # Deconstructs the URI into a hash for pattern matching.
+    #
+    # Returns a hash with keys: +:scheme+, +:userinfo+, +:host+, +:port+,
+    # +:path+, +:query+, +:fragment+, and +:params+.
+    #
+    # The +:params+ key contains the parsed query string as a hash with
+    # symbol keys, and is only computed when explicitly requested to avoid
+    # unnecessary parsing.
+    #
+    #   uri = URI("http://example.com/path?foo=bar&baz=qux")
+    #   uri.deconstruct_keys(nil)
+    #   # => {:scheme=>"http", :userinfo=>nil, :host=>"example.com", :port=>80,
+    #   #     :path=>"/path", :query=>"foo=bar&baz=qux", :fragment=>nil,
+    #   #     :params=>{:foo=>"bar", :baz=>"qux"}}
+    #
+    #   case uri
+    #   in scheme: "http", host: "example.com", params: { foo: "bar" }
+    #     # matches
+    #   end
+    #
+    def deconstruct_keys(keys)
+      h = {
+        scheme: @scheme,
+        userinfo: userinfo,
+        host: @host,
+        port: @port,
+        path: @path,
+        query: @query,
+        fragment: @fragment
+      }
+      if @query && (keys.nil? || keys.include?(:params))
+        h[:params] = URI.decode_www_form(@query).to_h { |k, v| [k.to_sym, v] }
+      end
+      h
+    end
+
     # Returns the parser to be used.
     #
     # Unless the +parser+ is defined, DEFAULT_PARSER is used.
