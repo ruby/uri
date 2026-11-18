@@ -416,6 +416,18 @@ class URI::TestWHATWGParser < Test::Unit::TestCase
     assert_equal(URI::RFC3986_PARSER.parse("foo://H/"), URI::RFC3986_PARSER.parse("foo://h/"))
   end
 
+  def test_equality_returns_true_or_false
+    whatwg = URI::WHATWG_PARSER.parse("http://h/")
+    rfc3986 = URI::RFC3986_PARSER.parse("http://h/")
+    assert_same(true, whatwg == URI::WHATWG_PARSER.parse("http://h/"))
+    assert_same(false, whatwg == URI::WHATWG_PARSER.parse("http://x/"))
+    assert_same(false, whatwg == rfc3986)
+    assert_same(false, rfc3986 == whatwg)
+    assert_same(false, whatwg == "http://h/")
+    assert_same(false, whatwg == nil)
+    assert_same(true, rfc3986 == URI::RFC3986_PARSER.parse("http://h/"))
+  end
+
   def test_uri_is_not_equal_to_a_string
     assert_not_equal(URI::WHATWG_PARSER.parse("http://h/"), "http://h/")
     assert_not_equal(URI::WHATWG_PARSER.parse("http://h/"), nil)

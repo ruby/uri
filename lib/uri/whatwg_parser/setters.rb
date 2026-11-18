@@ -272,7 +272,7 @@ module URI
       protected
 
       def whatwg_url?
-        defined?(@whatwg_url) && @whatwg_url
+        defined?(@whatwg_url) ? @whatwg_url : false
       end
 
       # Marks a URI that WHATWG_Parser has finished building.
