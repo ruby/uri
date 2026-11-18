@@ -322,6 +322,23 @@ class URI::TestWHATWGSetters < Test::Unit::TestCase
     assert_rejected("http://example.com/", :host, "example.org:8080")
   end
 
+  # A ":" inside brackets is part of an IPv6 address, and one outside
+  # them starts the port, which the hostname setter does not set.
+  def test_host_with_colons_and_brackets
+    assert_set("http://[::1]/", "http://example.com/", :host, "[::1]")
+    assert_set("http://[::1]/", "http://example.com/", :host, "[::1]/x")
+    assert_set("http://[::1]/", "http://example.com/", :host, "[::1]?x")
+    assert_rejected("http://example.com/", :host, "[::1]:8080")
+    assert_rejected("http://example.com/", :host, ":")
+    assert_rejected("http://example.com/", :host, ":8080")
+    assert_rejected("http://example.com/", :host, "a:")
+    assert_rejected("http://example.com/", :host, "a]:b")
+    assert_rejected("http://example.com/", :host, "[a]b:c")
+    assert_rejected("http://example.com/", :host, "[::1/]")
+    assert_rejected("foo://example.com/", :host, "[::1]:1")
+    assert_set("foo://[::1]/", "foo://example.com/", :host, "[::1]")
+  end
+
   def test_host_up_to_a_path_query_or_fragment
     assert_set("http://a/p", "http://example.com/p", :host, "a/b")
     assert_set("http://a/p", "http://example.com/p", :host, "a?b")

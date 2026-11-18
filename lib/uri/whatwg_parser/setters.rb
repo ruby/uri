@@ -53,10 +53,11 @@ module URI
       return set_url_file_host(url, input) if url.scheme == "file"
 
       special = special?(url.scheme)
-      buffer = host_buffer(input, special)
-      # A ":" outside brackets would start the port, which the hostname
-      # setter does not set.
-      return false if input.size > buffer.size && input[buffer.size] == ":"
+      authority_end = input.index(special ? SPECIAL_AUTHORITY_END : AUTHORITY_END) || input.size
+      buffer, port = split_host_and_port(input[0, authority_end])
+      # A ":" outside brackets starts the port, which the hostname setter
+      # does not set.
+      return false if port
       return false if special && buffer.empty?
       return false if buffer.empty? && (includes_credentials?(url) || url.port)
 
@@ -78,22 +79,6 @@ module URI
       return false unless host
       url.host = host == "localhost" ? "" : host
       true
-    end
-
-    # The host buffer of the host state: +input+ up to a ":" outside
-    # brackets, "/", "?", "#", or "\" for a special URL.
-    def host_buffer(input, special)
-      inside_brackets = false
-      input.each_char.with_index do |c, i|
-        return input[0, i] if c == ":" && !inside_brackets
-        return input[0, i] if c == "/" || c == "?" || c == "#" || (special && c == "\\")
-        if c == "["
-          inside_brackets = true
-        elsif c == "]"
-          inside_brackets = false
-        end
-      end
-      input
     end
 
     def try_parse_host(buffer, special)
