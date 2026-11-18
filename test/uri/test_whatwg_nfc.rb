@@ -118,7 +118,6 @@ class URI::TestWHATWGNFC < Test::Unit::TestCase
 
   def test_works_in_a_ractor
     omit "Ractor is not available" unless defined?(Ractor)
-    omit "require in a Ractor needs Ruby 3.4" if RUBY_VERSION < "3.4"
     assert_separately(%w[-W0], <<~'RUBY')
       require "uri"
       r = Ractor.new { URI::WHATWG_Parser::NFC.normalize("e\u{301}") }

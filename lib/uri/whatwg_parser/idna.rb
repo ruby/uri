@@ -12,8 +12,8 @@ module URI
     module IDNA # :nodoc:
       ACE_PREFIX = "xn--"
       LABEL_SEPARATOR = "."
-      ZWNJ = 0x200C.chr(Encoding::UTF_8)
-      ZWJ = 0x200D.chr(Encoding::UTF_8)
+      ZWNJ = 0x200C.chr(Encoding::UTF_8).freeze
+      ZWJ = 0x200D.chr(Encoding::UTF_8).freeze
 
       # Every code point the IDNA Mapping Table leaves unchanged is
       # matched out; ASCII code points other than A-Z are among them.
@@ -45,7 +45,7 @@ module URI
         load_data
 
         mapped = domain.gsub(MAPPING_CANDIDATE) { |c| MAPPING.fetch(c, c) }
-        labels = mapped.unicode_normalize(:nfc).split(LABEL_SEPARATOR, -1)
+        labels = NFC.normalize(mapped).split(LABEL_SEPARATOR, -1)
         labels.map! do |label|
           label = decode_label(label) if label.start_with?(ACE_PREFIX)
           return nil unless label && valid_label?(label)
@@ -65,7 +65,7 @@ module URI
         return nil unless label.ascii_only?
         decoded = Punycode.decode(label[ACE_PREFIX.size..-1])
         return nil if decoded.nil? || decoded.empty? || decoded.ascii_only?
-        return nil unless decoded.unicode_normalized?(:nfc)
+        return nil unless NFC.normalized?(decoded)
         decoded
       end
 

@@ -713,6 +713,15 @@ class URI::TestWHATWGParser < Test::Unit::TestCase
     assert_equal("127.0.0.1", split("http://127\u{3002}0.0.1/")[HOST])
   end
 
+  def test_split_non_ascii_domain_in_a_ractor
+    omit "Ractor is not available" unless defined?(Ractor)
+    assert_separately(%w[-W0], <<~'RUBY')
+      require "uri"
+      r = Ractor.new { URI::WHATWG_PARSER.parse("http://e\u{301}.example/").host }
+      assert_equal("xn--9ca.example", r.respond_to?(:value) ? r.value : r.take)
+    RUBY
+  end
+
   def test_split_non_ascii_domain_in_linear_time
     distinct = ->(n) { "http://" + (0x4E00...0x4E00 + n).map { |c| c.chr(Encoding::UTF_8) }.join + "/" }
     assert_linear_performance([300, 1_000, 3_000, 10_000], pre: distinct) do |uri|
