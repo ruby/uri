@@ -156,13 +156,13 @@ module URI
       url.host.nil? || url.host == "" || url.scheme == "file"
     end
 
-    # Makes the setters and the equality of a URI built by WHATWG_Parser
-    # follow the URL Standard. Prepended to URI::Generic; a URI that
-    # WHATWG_Parser did not build, or one that is still being
-    # initialized, keeps the methods of URI::Generic.
+    # Makes a URI built by WHATWG_Parser follow the URL Standard in its
+    # setters, equality, normalization, merge and routes. Prepended to
+    # URI::Generic; a URI that WHATWG_Parser did not build, or one that is
+    # still being initialized, keeps the methods of URI::Generic.
     #
     # A value that the URL Standard ignores raises InvalidComponentError.
-    module GenericSetters # :nodoc:
+    module URLMethods # :nodoc:
       def scheme=(v)
         return super unless whatwg_url?
         update_whatwg_url(:scheme, v) { |parser, url, value| parser.__send__(:set_url_scheme, url, value) }
@@ -341,6 +341,6 @@ module URI
       end
     end
 
-    Generic.prepend(GenericSetters)
+    Generic.prepend(URLMethods)
   end
 end
