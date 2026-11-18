@@ -237,6 +237,18 @@ module URI
         whatwg_url? && oth_whatwg_url && to_s == oth.to_s
       end
 
+      # The URL serializer writes "//" only for a URL with a host, while
+      # Generic#to_s writes it for any file or postgres URI. (A file URL
+      # always has a host.)
+      def to_s
+        str = super
+        return str unless whatwg_url? && @host.nil?
+
+        prefix = "#{@scheme}://"
+        str.start_with?(prefix) ? "#{@scheme}:#{str[prefix.size..-1]}" : str
+      end
+      alias to_str to_s
+
       # The URL Standard resolves a reference while parsing it against a
       # base, so WHATWG_Parser does the whole merge.
       def merge(oth)

@@ -272,6 +272,45 @@ class URI::TestWHATWGParser < Test::Unit::TestCase
     assert_raise(URI::BadURIError) { URI::WHATWG_PARSER.parse("http://h/a") - "x" }
   end
 
+  # --- serialization -------------------------------------------------
+
+  # The URL serializer writes "//" only for a URL with a host, which
+  # Generic#to_s writes for any file or postgres URI.
+  def test_to_s_of_a_postgres_url_without_a_host
+    {
+      "postgres:/x" => "postgres:/x",
+      "postgres:/.//x" => "postgres:/.//x",
+      "postgres:/" => "postgres:/",
+      "postgres:" => "postgres:",
+      "postgres:?q#f" => "postgres:?q#f",
+      "postgres:/x?q#f" => "postgres:/x?q#f",
+    }.each do |input, expected|
+      uri = URI::WHATWG_PARSER.parse(input)
+      assert_equal(expected, uri.to_s, input)
+      assert_equal(expected, uri.to_str, input)
+    end
+  end
+
+  def test_to_s_of_a_postgres_url_with_a_host
+    assert_equal("postgres://h/x", URI::WHATWG_PARSER.parse("postgres://h/x").to_s)
+    assert_equal("postgres:///x", URI::WHATWG_PARSER.parse("postgres:///x").to_s)
+    assert_equal("postgres://", URI::WHATWG_PARSER.parse("postgres://").to_s)
+  end
+
+  def test_postgres_url_without_a_host
+    uri = URI::WHATWG_PARSER.parse("postgres:/x")
+    assert_not_equal(URI::WHATWG_PARSER.parse("postgres:///x"), uri)
+    assert_equal("postgres:/a/c", URI::WHATWG_PARSER.join("postgres:/a/b", "c").to_s)
+    assert_equal("postgres:/a/c", (URI::WHATWG_PARSER.parse("postgres:/a/b") + "c").to_s)
+    assert_equal("#<URI::Generic postgres:/x>", uri.inspect)
+    uri.path = "y"
+    assert_equal("postgres:/y", uri.to_s)
+  end
+
+  def test_to_s_of_an_rfc3986_postgres_uri_without_a_host
+    assert_equal("postgres:///x", URI::RFC3986_PARSER.parse("postgres:/x").to_s)
+  end
+
   # --- normalize -----------------------------------------------------
 
   # A URI built by WHATWG_PARSER is already normalized by the URL
