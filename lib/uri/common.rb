@@ -43,8 +43,11 @@ module URI
   #   # raises URI::InvalidURIError
   #
   # Only http, https, ws, wss and file URLs become instances of their
-  # scheme's class; other schemes become URI::Generic. Domain to ASCII
-  # (IDNA) is not implemented: a non-ASCII domain is kept as is.
+  # scheme's class; other schemes become URI::Generic. A non-ASCII domain
+  # is converted to ASCII (IDNA, UTS #46):
+  #
+  #   URI::WHATWG_PARSER.parse("http://\u{65E5}\u{672C}\u{8A9E}.jp/").host
+  #   # => "xn--wgv71a119e.jp"
   WHATWG_PARSER = WHATWG_Parser.new
   Ractor.make_shareable(WHATWG_PARSER) if defined?(Ractor)
 

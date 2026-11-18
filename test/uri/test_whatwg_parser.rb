@@ -652,15 +652,72 @@ class URI::TestWHATWGParser < Test::Unit::TestCase
     end
   end
 
-  def test_split_ascii_xn_label_is_lowercased
-    # Interim: Punycode validation of "xn--" labels is not implemented.
+  def test_split_ascii_xn_label_is_lowercased_without_validation
+    # The domain parser returns an ASCII domain lowercased (beStrict is
+    # false), even when an "xn--" label is not valid Punycode.
     assert_equal("xn--9ca.example", split("http://XN--9CA.example/")[HOST])
+    assert_equal("xn--", split("http://xn--/")[HOST])
+    assert_equal("a.xn--pokxncvks", split("http://a.XN--pokxncvks/")[HOST])
   end
 
-  def test_split_non_ascii_domain_is_left_as_is
-    # Interim behaviour until domain to ASCII (UTS #46) is implemented.
-    assert_equal("\u00E9.example", split("http://\u00E9.example/")[HOST])
-    assert_equal("%C3%A9.example", split("http://%C3%A9.example/")[HOST])
+  # https://url.spec.whatwg.org/#concept-domain-to-ascii
+
+  def test_split_non_ascii_domain_to_ascii
+    assert_equal("xn--9ca.example", split("http://\u{E9}.example/")[HOST])
+    assert_equal("xn--wgv71a119e.jp", split("http://\u{65E5}\u{672C}\u{8A9E}.jp/")[HOST])
+  end
+
+  def test_split_percent_encoded_non_ascii_domain_to_ascii
+    assert_equal("xn--9ca.example", split("http://%C3%A9.example/")[HOST])
+    assert_equal("xn--9ca.example", split("http://%c3%a9.example/")[HOST])
+  end
+
+  def test_split_non_ascii_domain_mapped_to_ascii
+    assert_equal("example.com", split("http://\u{FF25}\u{FF38}\u{FF21}\u{FF2D}\u{FF30}\u{FF2C}\u{FF25}.com/")[HOST])
+    assert_equal("example.com", split("http://ex\u{AD}ample.com/")[HOST])
+    assert_equal("example.com", split("http://ex%C2%ADample.com/")[HOST])
+    assert_equal("example.com", split("http://example\u{3002}com/")[HOST])
+  end
+
+  def test_split_non_ascii_domain_failure
+    [
+      "http://\u{FFFD}/",         # disallowed
+      "http://a\u{200C}b/",       # ZWNJ without context
+      "http://\u{301}a/",         # leading combining mark
+      "http://a\u{5D0}/",         # Bidi Rule
+      "http://xn--a.\u{E9}/",     # "xn--" label decoding to U+0080
+      "http://xn--a-!.\u{E9}/",   # invalid Punycode
+    ].each do |input|
+      assert_raise(URI::InvalidURIError, input.dump) { split(input) }
+    end
+  end
+
+  def test_split_domain_not_valid_utf8_fails
+    ["http://%FF/", "http://a%C3/", "http://%C3%28/"].each do |input|
+      assert_raise(URI::InvalidURIError, input) { split(input) }
+    end
+  end
+
+  def test_split_non_ascii_domain_mapped_to_empty_fails
+    assert_raise(URI::InvalidURIError) { split("http://\u{AD}/") }
+    assert_raise(URI::InvalidURIError) { split("http://%C2%AD/") }
+  end
+
+  def test_split_non_ascii_domain_mapped_to_forbidden_code_point_fails
+    # U+FF05 FULLWIDTH PERCENT SIGN maps to "%".
+    assert_raise(URI::InvalidURIError) { split("http://a\u{FF05}b/") }
+  end
+
+  def test_split_non_ascii_domain_ending_in_a_number_is_ipv4
+    assert_equal("127.0.0.1", split("http://\u{FF11}\u{FF12}\u{FF17}.0.0.1/")[HOST])
+    assert_equal("127.0.0.1", split("http://127\u{3002}0.0.1/")[HOST])
+  end
+
+  def test_split_non_ascii_domain_rules_apply_to_every_special_scheme
+    %w[https ws wss ftp].each do |scheme|
+      assert_equal("xn--9ca", split("#{scheme}://\u{E9}/")[HOST], scheme)
+    end
+    assert_equal("xn--9ca", split("file://\u{E9}/p")[HOST])
   end
 
   def test_split_bracketed_host_must_end_with_bracket

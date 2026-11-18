@@ -513,19 +513,21 @@ module URI
       end
       return parse_opaque_host(input) unless special
 
-      domain = percent_decode(input)
-      unless domain.ascii_only?
-        # Interim: domain to ASCII (UTS #46) is not implemented yet, so a
-        # non-ASCII domain is returned unchanged.
-        raise InvalidURIError, "invalid host: #{input.dump}" if input.match?(FORBIDDEN_HOST_CODE_POINT)
-        return input
-      end
-
-      # domain to ASCII, for an ASCII domain with beStrict false.
-      ascii_domain = domain.downcase
-      raise InvalidURIError, "invalid host: #{input.dump}" if ascii_domain.match?(FORBIDDEN_DOMAIN_CODE_POINT)
+      ascii_domain = domain_to_ascii(percent_decode(input))
+      raise InvalidURIError, "invalid host: #{input.dump}" unless ascii_domain
       return serialize_ipv4(parse_ipv4(ascii_domain)) if ends_in_a_number?(ascii_domain)
       ascii_domain
+    end
+
+    # domain to ASCII (the domain parser) with beStrict false. Returns nil
+    # on failure.
+    #
+    # An ASCII domain is lowercased without Unicode ToASCII, so an "xn--"
+    # label in it is not validated.
+    def domain_to_ascii(domain)
+      result = domain.ascii_only? ? domain.downcase : IDNA.to_ascii(domain)
+      return nil if result.nil? || result.empty? || result.match?(FORBIDDEN_DOMAIN_CODE_POINT)
+      result
     end
 
     # ends in a number checker
