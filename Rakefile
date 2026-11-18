@@ -4,7 +4,9 @@ require "rake/testtask"
 Rake::TestTask.new(:test) do |t|
   t.libs << "test/lib"
   t.ruby_opts << "-rhelper"
-  t.test_files = FileList["test/**/test_*.rb"].exclude("test/wpt/**/*")
+  # The WPT and Unicode data tests need the network and run in rake
+  # test:wpt; the tests of their harness do not.
+  t.test_files = FileList["test/**/test_*.rb"].exclude(%r{\Atest/wpt/(?!test_\w+_harness\.rb\z)})
 end
 
 require "rdoc/task"
