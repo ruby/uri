@@ -150,10 +150,48 @@ class URI::TestWHATWGParser < Test::Unit::TestCase
     assert_same(uri, URI::WHATWG_PARSER.join(uri))
   end
 
+  # A URI that another parser built is parsed by the URL Standard, as
+  # its string would be.
+  def test_join_with_single_rfc3986_uri
+    rfc3986 = URI::RFC3986_PARSER.parse("HTTP://A/b/../c")
+    uri = URI::WHATWG_PARSER.join(rfc3986)
+
+    assert_equal("http://a/c", uri.to_s)
+    assert_same(URI::WHATWG_PARSER, uri.parser)
+    assert_equal(URI::WHATWG_PARSER.parse("http://a/c"), uri)
+    uri.host = "\u{E9}"
+    assert_equal("http://xn--9ca/c", uri.to_s)
+    assert_equal("http://A/b/../c", rfc3986.to_s)
+  end
+
+  def test_join_with_single_relative_rfc3986_uri
+    assert_raise(URI::InvalidURIError) { URI::WHATWG_PARSER.join(URI::RFC3986_PARSER.parse("/a")) }
+  end
+
+  def test_join_with_rfc3986_uris
+    uri = URI::WHATWG_PARSER.join(URI::RFC3986_PARSER.parse("HTTP://A/b/"), URI::RFC3986_PARSER.parse("../c"))
+    assert_equal("http://a/c", uri.to_s)
+    assert_same(URI::WHATWG_PARSER, uri.parser)
+  end
+
   # --- convert_to_uri (used by Generic#merge / #route_to) ------------
 
   def test_convert_to_uri_returns_uri_as_is
     uri = URI::WHATWG_PARSER.parse("http://example.com/")
+
+    assert_same(uri, URI::WHATWG_PARSER.__send__(:convert_to_uri, uri))
+  end
+
+  def test_convert_to_uri_parses_uri_of_another_parser
+    rfc3986 = URI::RFC3986_PARSER.parse("HTTP://A/b/../c")
+    uri = URI::WHATWG_PARSER.__send__(:convert_to_uri, rfc3986)
+
+    assert_equal("http://a/c", uri.to_s)
+    assert_same(URI::WHATWG_PARSER, uri.parser)
+  end
+
+  def test_convert_to_uri_returns_relative_uri_of_this_parser_as_is
+    uri = URI::WHATWG_PARSER.parse("http://h/a/b").route_to("http://h/a/c")
 
     assert_same(uri, URI::WHATWG_PARSER.__send__(:convert_to_uri, uri))
   end

@@ -803,9 +803,12 @@ module URI
       scheme ? parse(str) : nil
     end
 
+    # A URI that this parser built, or the relative URI that
+    # Generic#route_to returned for one, is returned as it is; a URI that
+    # another parser built is parsed, as its string would be.
     def convert_to_uri(uri)
       if uri.is_a?(URI::Generic)
-        uri
+        uri.parser.is_a?(WHATWG_Parser) ? uri : parse(uri.to_s)
       elsif uri = String.try_convert(uri)
         parse(uri)
       else
