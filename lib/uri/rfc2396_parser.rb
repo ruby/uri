@@ -320,14 +320,13 @@ module URI
       str.gsub(escaped) { [$&[1, 2]].pack('H2').force_encoding(enc) }
     end
 
-    TO_S = Kernel.instance_method(:to_s) # :nodoc:
-    if TO_S.respond_to?(:bind_call)
+    if UnboundMethod.method_defined?(:bind_call)
       def inspect # :nodoc:
-        TO_S.bind_call(self)
+        Kernel.instance_method(:to_s).bind_call(self)
       end
     else
       def inspect # :nodoc:
-        TO_S.bind(self).call
+        Kernel.instance_method(:to_s).bind(self).call
       end
     end
 
