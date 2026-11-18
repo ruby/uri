@@ -534,10 +534,17 @@ module URI
       return nil if input.empty?
       raise InvalidURIError, "invalid port: #{input.dump}" unless input.match?(ASCII_DIGITS)
 
-      digits = input.sub(LEADING_ZEROS, "")
-      port = digits.size > PORT_MAX_DIGITS ? MAX_PORT + 1 : digits.to_i
+      port = port_number(input)
       raise InvalidURIError, "port out of range: #{input.dump}" if port > MAX_PORT
       port == SPECIAL_SCHEMES[scheme] ? nil : port
+    end
+
+    # The number that +digits+, ASCII digits, represent. A number with
+    # more significant digits than MAX_PORT is MAX_PORT + 1 instead of
+    # being converted.
+    def port_number(digits)
+      digits = digits.sub(LEADING_ZEROS, "")
+      digits.size > PORT_MAX_DIGITS ? MAX_PORT + 1 : digits.to_i
     end
 
     # host parser

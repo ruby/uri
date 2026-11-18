@@ -389,6 +389,28 @@ class URI::TestWHATWGSetters < Test::Unit::TestCase
     assert_rejected("http://example.com/", :port, "99999999999999999999")
   end
 
+  def test_port_with_leading_zeros
+    assert_set("http://example.com:65535/", "http://example.com/", :port, "0" * 100 + "65535")
+    assert_rejected("http://example.com/", :port, "0" * 100 + "65536")
+    assert_set("http://example.com:0/", "http://example.com/", :port, "0" * 100)
+    assert_set("http://example.com/", "http://example.com:8080/", :port, "0" * 100 + "80")
+    assert_set("http://example.com:8080/", "http://example.com/", :port, "0" * 100 + "8080abc")
+  end
+
+  def test_port_with_many_digits
+    assert_rejected("http://example.com/", :port, "1" + "0" * 5)
+    assert_rejected("http://example.com/", :port, "1" * 100)
+    assert_rejected("http://example.com/", :port, "1" * 100 + "abc")
+  end
+
+  def test_port_in_linear_time
+    pre = ->(n) { [url("http://example.com/"), "1" * n] }
+    assert_linear_performance([10_000, 100_000, 1_000_000], pre: pre) do |uri, digits|
+      uri.port = digits
+    rescue URI::InvalidComponentError
+    end
+  end
+
   def test_port_up_to_a_non_digit
     assert_set("http://example.com:8080/", "http://example.com/", :port, "8080abc")
     assert_set("http://example.com:8080/", "http://example.com/", :port, "8080/x")

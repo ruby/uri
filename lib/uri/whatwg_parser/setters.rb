@@ -116,7 +116,7 @@ module URI
 
       digits = remove_tab_and_newline(value)[/\A[0-9]*/]
       return false if digits.empty?
-      port = digits.to_i
+      port = port_number(digits)
       return false if port > MAX_PORT
       url.port = port == SPECIAL_SCHEMES[url.scheme] ? nil : port
       true
