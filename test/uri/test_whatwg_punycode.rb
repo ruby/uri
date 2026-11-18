@@ -121,6 +121,52 @@ class URI::TestWHATWGPunycode < Test::Unit::TestCase
     end
   end
 
+  # Code points in descending order are each inserted at the start of
+  # the decoded output, the worst case for inserting into an array.
+  def test_decode_in_linear_time_with_insertions_at_the_start
+    pre = ->(n) { Punycode.encode((0x10000...0x10000 + n).map { |c| c.chr(Encoding::UTF_8) }.join.reverse) }
+    assert_linear_performance([3_000, 10_000, 30_000, 100_000], pre: pre) do |punycode|
+      Punycode.decode(punycode)
+    end
+  end
+
+  def test_decode_inverts_encode
+    [
+      "",
+      "a",
+      "abc",
+      "\u{E9}",
+      "\u{E9}\u{E9}\u{E9}",
+      "\u{FC}\u{E9}",
+      "\u{E9}a",
+      "a\u{E9}",
+      "a\u{E9}b",
+      "\u{E9}ab\u{FC}",
+      "\u{3042}a\u{E9}b\u{3042}c\u{E9}",
+      "\u{10FFFF}\u{80}\u{10000}",
+      (0x4E00...0x4E40).map { |c| c.chr(Encoding::UTF_8) }.join.reverse,
+      (0x4E00...0x4E40).map { |c| c.chr(Encoding::UTF_8) }.each_slice(2).map(&:reverse).join,
+      "ab" + (0x4E00...0x4E20).map { |c| c.chr(Encoding::UTF_8) }.join("x").reverse,
+    ].each do |label|
+      assert_equal(label, Punycode.decode(Punycode.encode(label)), label.dump)
+    end
+  end
+
+  # Many insertions are placed otherwise than a few.
+  def test_decode_inverts_encode_with_many_insertions
+    code_points = (0x4E00...0x4E00 + 3000).map { |c| c.chr(Encoding::UTF_8) }
+    [
+      code_points.first(1024).reverse.join,
+      code_points.first(1025).reverse.join,
+      code_points.reverse.join,
+      code_points.shuffle(random: Random.new(1)).join,
+      code_points.shuffle(random: Random.new(2)).each_slice(3).map { |s| s.join + "a-" }.join,
+      code_points.first(1500).zip(code_points.last(1500)).flatten.join,
+    ].each_with_index do |label, i|
+      assert_equal(label, Punycode.decode(Punycode.encode(label)), "label #{i}")
+    end
+  end
+
   def test_decode_of_a_non_string
     assert_raise(NoMethodError, TypeError) { Punycode.decode(nil) }
   end

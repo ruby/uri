@@ -21,6 +21,11 @@ module URI
       MAX_CODE_POINT = 0x10FFFF
       SURROGATES = (0xD800..0xDFFF).freeze
 
+      # Up to this many insertions, inserting into an array is faster
+      # than placing them with a Fenwick tree, and takes little time even
+      # when each one goes to the start.
+      ARRAY_INSERTION_LIMIT = 1024
+
       module_function
 
       # Encodes +input+, a String of Unicode code points, as Punycode.
@@ -82,15 +87,16 @@ module URI
 
       # Counts marked positions.
       class FenwickTree # :nodoc:
-        def initialize(size)
-          @tree = Array.new(size + 1, 0)
+        # A tree of +size+ positions, all of them marked if +marked+.
+        def initialize(size, marked: false)
+          @tree = Array.new(size + 1) { |i| marked ? i & -i : 0 }
         end
 
-        # Marks position +i+.
-        def add(i)
+        # Marks position +i+, or unmarks it if +value+ is -1.
+        def add(i, value = 1)
           i += 1
           while i < @tree.size
-            @tree[i] += 1
+            @tree[i] += value
             i += i & -i
           end
         end
@@ -98,6 +104,22 @@ module URI
         # The number of marked positions in first...last.
         def count(first, last)
           prefix(last) - prefix(first)
+        end
+
+        # The position of the marked position that has +k+ marked
+        # positions before it.
+        def find(k)
+          position = 0
+          step = 1
+          step <<= 1 while step * 2 < @tree.size
+          while step > 0
+            if position + step < @tree.size && @tree[position + step] <= k
+              position += step
+              k -= @tree[position]
+            end
+            step >>= 1
+          end
+          position
         end
 
         private
@@ -117,12 +139,19 @@ module URI
       # Decodes +input+, a Punycode String. Returns nil when +input+ is
       # not valid Punycode or decodes to something that is not a sequence
       # of Unicode scalar values.
+      #
+      # RFC 3492 inserts each decoded code point into the output, which
+      # takes time proportional to the square of the length when each one
+      # goes to the start. Instead, the insertions are recorded, and then
+      # placed by #place, which inserts only a few into an array.
       def decode(input)
         return nil unless input.ascii_only?
 
         delimiter = input.rindex(DELIMITER)
-        output = delimiter ? input[0, delimiter].codepoints : []
+        basic = delimiter ? input[0, delimiter].codepoints : []
         rest = delimiter ? input[delimiter + 1..-1] : input
+        indices = []
+        inserted = []
 
         n = INITIAL_N
         i = 0
@@ -145,15 +174,43 @@ module URI
             return nil if w > MAXINT
             k += BASE
           end
-          length = output.size + 1
+          length = basic.size + indices.size + 1
           bias = adapt(i - old_i, length, old_i == 0)
           n += i / length
           return nil if n > MAX_CODE_POINT || SURROGATES.cover?(n)
           i %= length
-          output.insert(i, n)
+          indices << i
+          inserted << n
           i += 1
         end
-        output.pack("U*")
+        place(basic, indices, inserted).pack("U*")
+      end
+
+      # The code points of +basic+ followed by those of +inserted+, each
+      # inserted at the index of the same place in +indices+, in order.
+      # Going back from the last insertion, each code point takes the free
+      # position that has as many free positions before it as its index,
+      # since the positions after it are those of later insertions.
+      def place(basic, indices, inserted)
+        if indices.size <= ARRAY_INSERTION_LIMIT
+          indices.each_with_index { |index, j| basic.insert(index, inserted[j]) }
+          return basic
+        end
+
+        output = Array.new(basic.size + indices.size)
+        free = FenwickTree.new(output.size, marked: true)
+        (indices.size - 1).downto(0) do |j|
+          position = free.find(indices[j])
+          output[position] = inserted[j]
+          free.add(position, -1)
+        end
+        # The basic code points take the positions left, in order.
+        basic_index = 0
+        output.map! do |c|
+          next c if c
+          basic_index += 1
+          basic[basic_index - 1]
+        end
       end
 
       def threshold(k, bias)
