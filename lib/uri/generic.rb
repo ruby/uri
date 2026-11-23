@@ -1020,8 +1020,9 @@ module URI
       rel_path  = split_path(rel)
 
       # RFC2396, Section 5.2, 6), a)
-      base_path << '' if base_path.last == '..'
-      # Remove "<segment>/.." pairs in a single left-to-right pass (O(n)).
+      base_path << '' if base_path.last == '..' || base_path.last == '.'
+      # Remove "." segments and "<segment>/.." pairs in a single
+      # left-to-right pass (O(n)).
       # This deliberately differs from the relative-path stack handling
       # below: a leading ".." (one with no preceding segment left to
       # cancel) discards the whole base path, reproducing the previous
@@ -1031,7 +1032,7 @@ module URI
         if seg == '..'
           break if reduced.empty?
           reduced.pop
-        else
+        elsif seg != '.'
           reduced << seg
         end
       end
