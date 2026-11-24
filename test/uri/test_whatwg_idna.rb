@@ -306,6 +306,15 @@ class URI::TestWHATWGIDNA < Test::Unit::TestCase
 
   # --- Input ---------------------------------------------------------
 
+  # A non-main Ractor can read only shareable constants.
+  def test_constants_are_shareable
+    omit "Ractor is not available" unless defined?(Ractor)
+    IDNA.load_data
+    [IDNA, URI::WHATWG_Parser::NFC].each do |mod|
+      assert_equal([], mod.constants.reject { |c| Ractor.shareable?(mod.const_get(c)) }, mod.name)
+    end
+  end
+
   def test_invalid_utf8
     assert_failure("\xFF.com".dup.force_encoding(Encoding::UTF_8))
   end

@@ -47,7 +47,8 @@ module URI
       OTHER_OR_SEPARATOR = /[\p{C}\p{Z}]/
       IDS_OPERATOR =
         begin
-          Regexp.new("[\\p{IDS_Unary_Operator}\\p{IDS_Binary_Operator}\\p{IDS_Trinary_Operator}]")
+          # Regexp.new, unlike a literal, is not frozen.
+          Regexp.new("[\\p{IDS_Unary_Operator}\\p{IDS_Binary_Operator}\\p{IDS_Trinary_Operator}]").freeze
         rescue RegexpError
           # IDS_Unary_Operator is new in Unicode 15.1, with U+2FFE and U+2FFF.
           /[\u{2FFE}\u{2FFF}\p{IDS_Binary_Operator}\p{IDS_Trinary_Operator}]/
