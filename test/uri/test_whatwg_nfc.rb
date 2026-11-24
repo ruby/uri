@@ -2,13 +2,17 @@
 require 'test/unit'
 require 'uri'
 
-# Unicode Normalization Form C (UAX #15) with the Unicode data of
-# URI::WHATWG_Parser::IDNA.
+# Unicode Normalization Forms C and KC (UAX #15) with the Unicode data of
+# the running Ruby.
 class URI::TestWHATWGNFC < Test::Unit::TestCase
   NFC = URI::WHATWG_Parser::NFC
 
   def assert_nfc(expected, input)
     assert_equal(expected, NFC.normalize(input), "NFC(#{input.dump})")
+  end
+
+  def assert_nfkc(expected, input)
+    assert_equal(expected, NFC.normalize_kc(input), "NFKC(#{input.dump})")
   end
 
   def test_ascii_and_empty
@@ -116,12 +120,63 @@ class URI::TestWHATWGNFC < Test::Unit::TestCase
     assert_true(NFC.normalized?("\u{1EA1}\u{301}"))
   end
 
+  def test_nfkc_ascii_and_empty
+    assert_nfkc("", "")
+    assert_nfkc("Example.COM", "Example.COM")
+  end
+
+  def test_nfkc_decomposes_compatibility_characters
+    assert_nfkc("ffi", "\u{FB03}")
+    assert_nfkc("A", "\u{FF21}")
+    assert_nfkc("1", "\u{2460}")
+    assert_nfkc("A", "\u{1D400}")
+    assert_nfkc("\u{30A2}\u{30D1}\u{30FC}\u{30C8}", "\u{3300}")
+  end
+
+  # Each step of a compatibility decomposition is applied: U+FFA1 is
+  # U+3131, which is U+1100.
+  def test_nfkc_decomposes_fully
+    assert_nfkc("\u{1100}", "\u{FFA1}")
+  end
+
+  def test_nfkc_composes
+    assert_nfkc("\u{30AC}", "\u{FF76}\u{FF9E}")
+    assert_nfkc("\u{1E69}", "\u{1E9B}\u{323}")
+    assert_nfkc("\u{E9}", "e\u{301}")
+  end
+
+  def test_nfkc_keeps_what_nfc_keeps
+    assert_nfkc("\u{AC00}", "\u{AC00}")
+    assert_nfkc("\u{3A9}", "\u{2126}")
+    assert_nfkc("\u{8C48}", "\u{F900}")
+    assert_nfkc("\u{915}\u{93C}", "\u{958}")
+  end
+
+  def test_nfkc_input_is_not_modified_and_result_is_utf8
+    input = "\u{FB03}"
+    result = NFC.normalize_kc(input)
+    assert_equal("\u{FB03}", input)
+    assert_equal(Encoding::UTF_8, result.encoding)
+    assert_equal(Encoding::UTF_8, NFC.normalize_kc("a").encoding)
+  end
+
+  # The tables are those of String#unicode_normalize, so both agree on
+  # every code point that has a decomposition or a combining class.
+  def test_agrees_with_unicode_normalize
+    require "unicode_normalize/tables"
+    chars = UnicodeNormalize::KOMPATIBLE_TABLE.keys + UnicodeNormalize::DECOMPOSITION_TABLE.keys +
+            UnicodeNormalize::CLASS_TABLE.keys + ["\u{AC00}", "\u{D7A3}", "\u{1100}\u{1161}\u{11A8}"]
+    nfc = chars.reject { |c| NFC.normalize(c) == c.unicode_normalize(:nfc) }
+    nfkc = chars.reject { |c| NFC.normalize_kc(c) == c.unicode_normalize(:nfkc) }
+    assert_equal([[], []], [nfc.map(&:dump), nfkc.map(&:dump)])
+  end
+
   def test_works_in_a_ractor
     omit "Ractor is not available" unless defined?(Ractor)
     assert_separately(%w[-W0], <<~'RUBY')
       require "uri"
-      r = Ractor.new { URI::WHATWG_Parser::NFC.normalize("e\u{301}") }
-      assert_equal("\u{E9}", r.respond_to?(:value) ? r.value : r.take)
+      r = Ractor.new { [URI::WHATWG_Parser::NFC.normalize("e\u{301}"), URI::WHATWG_Parser::NFC.normalize_kc("\u{FB03}")] }
+      assert_equal(["\u{E9}", "ffi"], r.respond_to?(:value) ? r.value : r.take)
     RUBY
   end
 
@@ -133,6 +188,10 @@ class URI::TestWHATWGNFC < Test::Unit::TestCase
     hangul = ->(n) { "\u{1100}\u{1161}\u{11A8}" * n }
     assert_linear_performance([300, 1_000, 3_000, 10_000], pre: hangul) do |input|
       NFC.normalize(input)
+    end
+    compatibility = ->(n) { "\u{FDFA}\u{301}" * n }
+    assert_linear_performance([300, 1_000, 3_000, 10_000], pre: compatibility) do |input|
+      NFC.normalize_kc(input)
     end
   end
 end

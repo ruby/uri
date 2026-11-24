@@ -1,11 +1,11 @@
 # frozen_string_literal: true
 module URI
   class WHATWG_Parser
-    # Unicode Normalization Form C (UAX #15,
-    # https://www.unicode.org/reports/tr15/) with the Unicode data of
-    # IDNA, which String#unicode_normalize cannot provide: its Unicode
-    # version is the one of the running Ruby, and it cannot run in a
-    # non-main Ractor.
+    # Unicode Normalization Forms C and KC (UAX #15,
+    # https://www.unicode.org/reports/tr15/) with the tables of
+    # String#unicode_normalize, so with the Unicode version of the running
+    # Ruby. String#unicode_normalize itself cannot run in a non-main
+    # Ractor.
     #
     # The tables (nfc_tables.rb) are loaded on first use, or with
     # whatwg_parser.rb where a Ractor cannot require them safely.
@@ -27,9 +27,19 @@ module URI
 
       # Returns +input+, a UTF-8 String, in NFC.
       def normalize(input)
+        recompose(input) { |code_points| decompose(code_points) }
+      end
+
+      # Returns +input+, a UTF-8 String, in NFKC.
+      def normalize_kc(input)
+        recompose(input) { |code_points| decompose(code_points, COMPATIBILITY_DECOMPOSITION) }
+      end
+
+      # Composes +input+ decomposed by the block.
+      def recompose(input)
         return input.dup if input.ascii_only?
         load_tables
-        code_points = decompose(input.codepoints)
+        code_points = yield input.codepoints
         reorder!(code_points)
         compose(code_points).pack("U*")
       end
@@ -46,15 +56,17 @@ module URI
         first * CODE_SPACE + second
       end
 
-      # The full canonical decomposition of +code_points+.
-      def decompose(code_points)
+      # The full canonical decomposition of +code_points+, or the full
+      # compatibility decomposition with COMPATIBILITY_DECOMPOSITION as
+      # +compatibility+.
+      def decompose(code_points, compatibility = nil)
         code_points.each_with_object([]) do |c, result|
           s_index = c - S_BASE
           if s_index >= 0 && s_index < S_COUNT
             result << L_BASE + s_index / N_COUNT << V_BASE + (s_index % N_COUNT) / T_COUNT
             t = s_index % T_COUNT
             result << T_BASE + t if t > 0
-          elsif (decomposition = DECOMPOSITION[c])
+          elsif (decomposition = (compatibility && compatibility[c]) || DECOMPOSITION[c])
             result.concat(decomposition)
           else
             result << c

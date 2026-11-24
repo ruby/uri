@@ -46,14 +46,23 @@ class NormalizationTest::TestHarness < Test::Unit::TestCase
     assert_match(/NFC\(c5\).*expected c4/, NormalizationTest.run(c, ->(s) { s }))
   end
 
+  def test_run_checks_nfkc_when_given
+    c = { columns: ["\u{FB03}", "\u{FB03}", "\u{FB03}", "ffi", "ffi"], line: 1, part: "Part1" }
+    nfc = ->(s) { s }
+    assert_nil(NormalizationTest.run(c, nfc))
+    assert_match(/NFKC\(c1\) = FB03, expected c4 = 0066 0066 0069/, NormalizationTest.run(c, nfc, nfc))
+    assert_nil(NormalizationTest.run(c, nfc, ->(s) { s == "ffi" ? s : "ffi" }))
+  end
+
   def test_run_reports_exceptions
     c = NormalizationTest.parse(TEXT)[0]
     assert_match(/RuntimeError: boom/, NormalizationTest.run(c, ->(s) { raise "boom" }))
   end
 
-  def test_source_defaults_to_the_version_of_the_data
+  # The tables of NFC are those of the running Ruby.
+  def test_source_defaults_to_the_unicode_version_of_ruby
     assert_equal(
-      "https://www.unicode.org/Public/#{IDNATestV2.unicode_version}/ucd/NormalizationTest.txt",
+      "https://www.unicode.org/Public/#{RbConfig::CONFIG["UNICODE_VERSION"]}/ucd/NormalizationTest.txt",
       NormalizationTest.default_source
     )
   end
