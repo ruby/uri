@@ -8,8 +8,16 @@ module URI
     # Transitional_Processing=false, VerifyDnsLength=false and
     # IgnoreInvalidPunycode=false.
     #
-    # The Unicode data (idna_data.rb) is loaded on first use, or with
-    # whatwg_parser.rb where a Ractor cannot require it safely.
+    # The IDNA Mapping Table is not stored: the status and the mapping of
+    # each code point are derived as UTS #46 section 6 does, from the
+    # Unicode data of the running Ruby (its character properties, case
+    # folding and the tables of NFC and NFKC), so a code point added in a
+    # later Unicode version is disallowed. Only the Bidi_Class and
+    # Joining_Type values that the Bidi Rule and CONTEXTJ need, which Ruby
+    # has not, are generated (idna_data.rb).
+    #
+    # The data is loaded on first use, or with whatwg_parser.rb where a
+    # Ractor cannot require it safely.
     module IDNA # :nodoc:
       ACE_PREFIX = "xn--"
       LABEL_SEPARATOR = "."
@@ -30,6 +38,33 @@ module URI
       BIDI_LTR_ALLOWED = /\A[LENM]*\z/
       BIDI_LTR_END = /[LE]M*\z/
 
+      # The sets of the Mapping Table Derivation (UTS #46 section 6).
+      LABEL_SEPARATORS = ["\u{FF0E}", "\u{3002}", "\u{FF61}"].freeze
+      CAPITAL_SHARP_S = "\u{1E9E}"
+      SHARP_S = "\u{DF}"
+      BIDI_CONTROL = /\p{Bidi_Control}/
+      DEFAULT_IGNORABLE = /\p{Default_Ignorable_Code_Point}/
+      OTHER_OR_SEPARATOR = /[\p{C}\p{Z}]/
+      IDS_OPERATOR =
+        begin
+          Regexp.new("[\\p{IDS_Unary_Operator}\\p{IDS_Binary_Operator}\\p{IDS_Trinary_Operator}]")
+        rescue RegexpError
+          # IDS_Unary_Operator is new in Unicode 15.1, with U+2FFE and U+2FFF.
+          /[\u{2FFE}\u{2FFF}\p{IDS_Binary_Operator}\p{IDS_Trinary_Operator}]/
+        end
+      EXCLUDED = /[\u{FFFC}\u{FFFD}\u{E0001}-\u{E007F}]/
+      UNASSIGNED = /\p{Cn}/
+      DEVIATIONS = [ZWNJ, ZWJ, SHARP_S, "\u{3C2}"].freeze
+
+      # General_Category=Mark.
+      MARK = /\p{M}/
+      # Canonical_Combining_Class=Virama.
+      VIRAMA_CLASS = 9
+      # The ASCII code points whose Bidi_Class (B, S or WS) is none that
+      # the Bidi Rule names. Every other valid code point not listed in
+      # idna_data.rb has Bidi_Class L.
+      BIDI_OTHER = /[\t\n\v\f\r\x1C-\x20]/
+
       module_function
 
       # Returns the ASCII form of +domain+, or nil on failure.
@@ -45,7 +80,7 @@ module URI
         return nil unless domain.valid_encoding?
         load_data
 
-        mapped = domain.gsub(MAPPING_CANDIDATE) { |c| MAPPING.fetch(c, c) }
+        mapped = domain.gsub(MAPPING_CANDIDATE) { |c| map(c) }
         labels = NFC.normalize(mapped).split(LABEL_SEPARATOR, -1)
         labels.map! do |label|
           label = decode_label(label) if label.start_with?(ACE_PREFIX)
@@ -57,7 +92,62 @@ module URI
       end
 
       def load_data
-        require_relative "idna_data" unless const_defined?(:MAPPING, false)
+        require_relative "idna_data" unless const_defined?(:BIDI_NSM, false)
+        NFC.load_tables
+      end
+
+      # The character +c+ maps to in the IDNA Mapping Table: its mapping if
+      # its status is mapped or ignored, otherwise +c+ itself.
+      def map(c)
+        mapping_of(c) || c
+      end
+
+      # Steps 6 and 7 for +c+: its mapping if its status is mapped or
+      # ignored (an empty string), or nil.
+      def mapping_of(c)
+        return nil if DEVIATIONS.include?(c) || c.match?(EXCLUDED) || c.match?(UNASSIGNED)
+        mapping = base_mapping(c)
+        return nil if mapping == c
+        return nil unless LABEL_SEPARATORS.include?(c) || mapping.each_char.all? { |m| base_valid?(m) }
+        # Step 7: a mapping that is not wholly valid is disallowed, such
+        # as the U+3002 of U+FE12, which is mapped itself. A mapping is
+        # stable under NFKC_Casefold, so this needs no repeating.
+        return nil unless mapping.each_char.all? { |m| m == LABEL_SEPARATOR || valid_char?(m) }
+        mapping
+      end
+
+      # Step 6 for +c+: whether its status is valid or deviation.
+      def valid_char?(c)
+        return c != LABEL_SEPARATOR if c.ord < 0x80
+        return true if DEVIATIONS.include?(c)
+        return false if c.match?(EXCLUDED) || c.match?(UNASSIGNED)
+        base_mapping(c) == c && base_valid?(c)
+      end
+
+      # Step 1: the base mapping of +c+.
+      def base_mapping(c)
+        return LABEL_SEPARATOR if LABEL_SEPARATORS.include?(c)
+        return c if c.match?(BIDI_CONTROL)
+        return SHARP_S if c == CAPITAL_SHARP_S
+        nfkc_casefold(c)
+      end
+
+      # Step 2: whether +c+ is in the base valid set.
+      def base_valid?(c)
+        return c != LABEL_SEPARATOR if c.ord < 0x80
+        return true if c == SHARP_S
+        return false if c.match?(OTHER_OR_SEPARATOR) || c.match?(IDS_OPERATOR)
+        nfkc_casefold(c) == c
+      end
+
+      # NFKC_Casefold: the closure of NFKC(toCasefold(NFKC(X))) with the
+      # default ignorable code points removed.
+      def nfkc_casefold(s)
+        loop do
+          t = NFC.normalize_kc(NFC.normalize_kc(s).downcase(:fold)).gsub(DEFAULT_IGNORABLE, "")
+          return t if t == s
+          s = t
+        end
       end
 
       # Processing step 4 for a label that starts with "xn--". Returns the
@@ -78,7 +168,7 @@ module URI
         !label.start_with?(ACE_PREFIX) &&
           !label.include?(LABEL_SEPARATOR) &&
           !MARK.match?(label[0]) &&
-          !INVALID.match?(label) &&
+          label.each_char.all? { |c| valid_char?(c) } &&
           valid_joiners?(label)
       end
 
@@ -89,13 +179,17 @@ module URI
         chars.each_with_index.all? do |char, i|
           case char
           when ZWJ
-            i > 0 && VIRAMA.match?(chars[i - 1])
+            i > 0 && virama?(chars[i - 1])
           when ZWNJ
-            (i > 0 && VIRAMA.match?(chars[i - 1])) || joining_context?(chars, i)
+            (i > 0 && virama?(chars[i - 1])) || joining_context?(chars, i)
           else
             true
           end
         end
+      end
+
+      def virama?(c)
+        NFC::COMBINING_CLASS[c.ord] == VIRAMA_CLASS
       end
 
       # Whether the ZWNJ at +i+ is preceded by Joining_Type L or D and
@@ -129,13 +223,13 @@ module URI
 
       def bidi_classes(label)
         label.each_char.map do |char|
-          if BIDI_L.match?(char) then "L"
-          elsif BIDI_R_OR_AL.match?(char) then "R"
+          if BIDI_R_OR_AL.match?(char) then "R"
           elsif BIDI_AN.match?(char) then "A"
           elsif BIDI_EN.match?(char) then "E"
           elsif BIDI_ES_CS_ET_ON_BN.match?(char) then "N"
           elsif BIDI_NSM.match?(char) then "M"
-          else "X"
+          elsif BIDI_OTHER.match?(char) then "X"
+          else "L"
           end
         end.join
       end

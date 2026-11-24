@@ -1164,7 +1164,7 @@ class URI::TestWHATWGParser < Test::Unit::TestCase
       require "uri"
       version = RUBY_VERSION.split(".").map(&:to_i)
       eager = !!defined?(Ractor) && (version <=> [3, 0]) >= 0 && (version <=> [4, 0]) < 0
-      assert_equal(eager, URI::WHATWG_Parser::IDNA.const_defined?(:MAPPING, false), "IDNA data")
+      assert_equal(eager, URI::WHATWG_Parser::IDNA.const_defined?(:BIDI_NSM, false), "IDNA data")
       assert_equal(eager, URI::WHATWG_Parser::NFC.const_defined?(:COMPOSITION, false), "NFC tables")
     RUBY
   end

@@ -2,21 +2,15 @@
 
 # Generates lib/uri/whatwg_parser/idna_data.rb, the Unicode data that
 # URI::WHATWG_Parser::IDNA needs for domain to ASCII (UTS #46 ToASCII
-# with the settings of the URL Standard), from the Unicode Character
-# Database files of one Unicode version.
+# with the settings of the URL Standard) and that Ruby has not: the
+# Bidi_Class and Joining_Type values of the valid code points, from the
+# Unicode Character Database files of one Unicode version.
 class IDNADataGenerator
   FILES = {
     mapping: "idna/IdnaMappingTable.txt",
     bidi_class: "ucd/extracted/DerivedBidiClass.txt",
     joining_type: "ucd/extracted/DerivedJoiningType.txt",
-    combining_class: "ucd/extracted/DerivedCombiningClass.txt",
-    general_category: "ucd/extracted/DerivedGeneralCategory.txt",
-    unicode_data: "ucd/UnicodeData.txt",
-    normalization_props: "ucd/DerivedNormalizationProps.txt",
   }.freeze
-
-  # Canonical_Combining_Class=Virama
-  VIRAMA = "9"
 
   def self.url(version, file)
     "https://www.unicode.org/Public/#{version}/#{file}"
@@ -29,8 +23,7 @@ class IDNADataGenerator
   end
 
   def generate
-    mapping = parse_mapping
-    valid = mapping[:valid]
+    valid = valid_code_points
     <<~RUBY
       # frozen_string_literal: true
 
@@ -43,53 +36,19 @@ class IDNADataGenerator
           module IDNA # :nodoc:
             UNICODE_VERSION = #{@version.dump}
 
-            # The replacement of each code point with the status "mapped" or
-            # "ignored" (an empty string) in the IDNA Mapping Table.
-            MAPPING = {
-      #{mapping_entries(mapping[:mapped]).join("\n")}
-            }.freeze
-
-            # A code point whose status is neither "valid" nor "deviation".
-            # A deviation is valid in Nontransitional Processing.
-            INVALID = #{char_class(valid, negate: true)}
-
-            # General_Category=Mark, among the valid code points.
-            MARK = #{char_class(intersect(property("general_category") { |v| v.start_with?("M") }, valid))}
-
-            # Canonical_Combining_Class=Virama, among the valid code points.
-            VIRAMA = #{char_class(intersect(property("combining_class") { |v| v == VIRAMA }, valid))}
-
             # Joining_Type, among the valid code points.
             JOINING_TYPE_L_OR_D = #{char_class(intersect(property("joining_type") { |v| %w[L D].include?(v) }, valid))}
             JOINING_TYPE_R_OR_D = #{char_class(intersect(property("joining_type") { |v| %w[R D].include?(v) }, valid))}
             JOINING_TYPE_T = #{char_class(intersect(property("joining_type") { |v| v == "T" }, valid))}
 
-            # Bidi_Class, among the valid code points. The values that the
-            # Bidi Rule (RFC 5893) always treats alike are grouped.
-            BIDI_L = #{char_class(intersect(bidi_class("L"), valid))}
+            # Bidi_Class, among the valid code points, but L, which is the
+            # class of the others. The values that the Bidi Rule (RFC 5893)
+            # always treats alike are grouped.
             BIDI_R_OR_AL = #{char_class(intersect(bidi_class("R", "AL"), valid))}
             BIDI_AN = #{char_class(intersect(bidi_class("AN"), valid))}
             BIDI_EN = #{char_class(intersect(bidi_class("EN"), valid))}
             BIDI_ES_CS_ET_ON_BN = #{char_class(intersect(bidi_class("ES", "CS", "ET", "ON", "BN"), valid))}
             BIDI_NSM = #{char_class(intersect(bidi_class("NSM"), valid))}
-
-            # Canonical_Combining_Class of each code point whose class is
-            # not 0.
-            COMBINING_CLASS = {
-      #{hash_entries(combining_classes) { |ccc| ccc.to_s }.join("\n")}
-            }.freeze
-
-            # The canonical decomposition mapping (one level) of each code
-            # point that has one. Hangul syllables are not listed: they are
-            # decomposed algorithmically.
-            CANONICAL_DECOMPOSITION = {
-      #{hash_entries(canonical_decompositions) { |target| escape(target) }.join("\n")}
-            }.freeze
-
-            # The code points with a canonical decomposition into two code
-            # points that are excluded from composition
-            # (Full_Composition_Exclusion).
-            COMPOSITION_EXCLUSION = #{char_class(composition_exclusions)}
           end
         end
       end
@@ -98,25 +57,15 @@ class IDNADataGenerator
 
   private
 
-  # Returns {valid: [ranges], mapped: {code point => [code points]}}.
-  def parse_mapping
+  # The ranges of the code points whose status is valid or deviation in
+  # the IDNA Mapping Table: the others are never checked for Bidi_Class
+  # or Joining_Type.
+  def valid_code_points
     valid = []
-    mapped = {}
     each_line(:mapping) do |range, fields|
-      case fields[0]
-      when "valid", "deviation"
-        valid << range
-      when "mapped"
-        target = fields[1].split.map(&:hex)
-        range.each { |c| mapped[c] = target }
-      when "ignored"
-        range.each { |c| mapped[c] = [] }
-      when "disallowed"
-      else
-        raise "unknown status #{fields[0].inspect} in IdnaMappingTable.txt"
-      end
+      valid << range if %w[valid deviation].include?(fields[0])
     end
-    {valid: merge(valid), mapped: mapped}
+    merge(valid)
   end
 
   def property(key)
@@ -163,55 +112,11 @@ class IDNADataGenerator
     end
   end
 
-  def mapping_entries(mapped)
-    hash_entries(mapped) { |target| escape(target) }
-  end
-
-  # Lines of Hash entries keyed by code point, with values formatted by
-  # the block.
-  def hash_entries(hash)
-    hash.sort.each_slice(4).map do |slice|
-      "        " + slice.map { |c, value| "#{escape([c])} => #{yield value}," }.join(" ")
-    end
-  end
-
-  # {code point => Canonical_Combining_Class} for classes other than 0.
-  def combining_classes
-    classes = {}
-    each_line(:combining_class) do |range, fields|
-      ccc = Integer(fields[0], 10)
-      range.each { |c| classes[c] = ccc } unless ccc == 0
-    end
-    classes
-  end
-
-  # {code point => [code points]}: the canonical decomposition mappings
-  # in UnicodeData.txt. A compatibility mapping starts with "<tag>".
-  def canonical_decompositions
-    @canonical_decompositions ||= {}.tap do |decompositions|
-      each_line(:unicode_data) do |range, fields|
-        mapping = fields[4]
-        next if mapping.empty? || mapping.start_with?("<")
-        decompositions[range.first] = mapping.split.map(&:hex)
-      end
-    end
-  end
-
-  def composition_exclusions
-    excluded = property("normalization_props") { |v| v == "Full_Composition_Exclusion" }
-    pairs = canonical_decompositions.select { |_, target| target.size == 2 }.keys
-    merge(pairs.select { |c| excluded.any? { |range| range.cover?(c) } }.map { |c| c..c })
-  end
-
-  def escape(code_points)
-    "\"#{code_points.map { |c| format("\\u{%X}", c) }.join}\""
-  end
-
-  def char_class(ranges, negate: false)
+  def char_class(ranges)
     body = ranges.map do |range|
       first = format("\\u{%X}", range.first)
       range.size == 1 ? first : "#{first}-#{format("\\u{%X}", range.last)}"
     end
-    "/[#{"^" if negate}#{body.join}]/"
+    "/[#{body.join}]/"
   end
 end

@@ -66,6 +66,85 @@ class URI::TestWHATWGIDNA < Test::Unit::TestCase
     assert_to_ascii("xn--fa-hia.de", "FA\u1E9E.de")
   end
 
+  # --- Mapping table derivation (UTS #46 section 6) -----------------
+  # The IDNA Mapping Table is derived from the Unicode data of the
+  # running Ruby.
+
+  # Step 1: the label separators map to ".", Bidi_Control characters
+  # to themselves (so step 6 disallows them), and U+1E9E to U+00DF.
+  def test_derivation_base_mapping_exceptions
+    assert_to_ascii("a.b", "a\u{FF0E}b")
+    assert_to_ascii("a.b", "a\u{FF61}b")
+    assert_to_ascii(".", "\u{3002}")
+    assert_failure("a\u{200E}b")
+    assert_failure("a\u{202A}b")
+    assert_to_ascii("xn--zca", "\u{1E9E}")
+  end
+
+  # Step 1 otherwise: NFKC_Casefold, which removes default ignorable
+  # code points.
+  def test_derivation_nfkc_casefold
+    assert_to_ascii("viii", "\u{2167}")
+    assert_to_ascii("ffi", "\u{FB03}")
+    assert_to_ascii("xn--bya", "\u{2126}")
+    assert_to_ascii("ab", "a\u{AD}b")
+    assert_to_ascii("ab", "a\u{200B}b")
+    assert_to_ascii("ab", "a\u{180E}b")
+    assert_to_ascii("ab", "a\u{FE0F}b")
+    assert_to_ascii("ab", "a\u{E0100}b")
+  end
+
+  # Step 2: the base valid set has the ASCII code points but ".", and no
+  # other control, format, private use, unassigned or separator code
+  # point, nor IDS operator.
+  def test_derivation_base_valid_set
+    assert_to_ascii("a\u{0}b", "a\u{0}b")
+    assert_to_ascii("a b", "a\u{A0}b")
+    assert_to_ascii("a b", "a\u{3000}b")
+    assert_failure("a\u{2028}b")
+    assert_failure("a\u{E000}")
+    assert_failure("a\u{FDD0}")
+    assert_failure("a\u{2FF0}b")
+    assert_failure("a\u{2FFE}b")
+    assert_to_ascii("xn--a-jv3s", "a\u{1F600}")
+    assert_to_ascii("xn--o39a", "\u{AC00}")
+  end
+
+  # Step 3: the base exclusion set.
+  def test_derivation_base_exclusion_set
+    assert_failure("a\u{FFFC}")
+    assert_failure("a\u{FFFD}")
+    assert_failure("a\u{E0001}")
+    assert_failure("a\u{E007F}")
+  end
+
+  # Step 4: the deviations are valid in Nontransitional Processing.
+  def test_derivation_deviations
+    assert_to_ascii("xn--a-ymb", "a\u{3C2}")
+    assert_to_ascii("xn--fa-hia.de", "fa\u{DF}.de")
+  end
+
+  # Step 6: an unassigned code point is disallowed, as is one whose
+  # mapping has a code point outside the base valid set, such as the
+  # "." of U+2488 DIGIT ONE FULL STOP.
+  def test_derivation_disallowed
+    assert_failure("a\u{378}")
+    assert_failure("a\u{2488}b")
+  end
+
+  # Step 7: a mapping must be wholly valid. U+FE12 maps to U+3002, which
+  # is mapped itself.
+  def test_derivation_mapping_to_a_mapped_code_point
+    assert_failure("a\u{FE12}b")
+  end
+
+  # A code point added in a later Unicode version than the running
+  # Ruby's is unassigned, so disallowed.
+  def test_code_point_unknown_to_ruby_is_disallowed
+    unknown = (0x30000..0x3FFFD).find { |c| c.chr(Encoding::UTF_8).match?(/\p{Cn}/) }
+    assert_failure("a" + unknown.chr(Encoding::UTF_8))
+  end
+
   # --- Normalize -----------------------------------------------------
 
   def test_normalized_to_nfc
