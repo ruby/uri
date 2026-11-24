@@ -106,7 +106,7 @@ module URI
       # Steps 6 and 7 for +c+: its mapping if its status is mapped or
       # ignored (an empty string), or nil.
       def mapping_of(c)
-        return nil if DEVIATIONS.include?(c) || c.match?(EXCLUDED) || c.match?(UNASSIGNED)
+        return nil if DEVIATIONS.include?(c) || c.match?(EXCLUDED) || unknown?(c)
         mapping = base_mapping(c)
         return nil if mapping == c
         return nil unless LABEL_SEPARATORS.include?(c) || mapping.each_char.all? { |m| base_valid?(m) }
@@ -121,8 +121,24 @@ module URI
       def valid_char?(c)
         return c != LABEL_SEPARATOR if c.ord < 0x80
         return true if DEVIATIONS.include?(c)
-        return false if c.match?(EXCLUDED) || c.match?(UNASSIGNED)
+        return false if c.match?(EXCLUDED) || unknown?(c)
         base_mapping(c) == c && base_valid?(c)
+      end
+
+      # Whether +c+ is unassigned in the Unicode version of the running
+      # Ruby, or assigned after that of the generated data, whose
+      # Bidi_Class and Joining_Type values it does not have.
+      def unknown?(c)
+        c.match?(UNASSIGNED) || (!NEWER_THAN_DATA.nil? && c.match?(NEWER_THAN_DATA))
+      end
+
+      # A pattern of the code points assigned after Unicode +version+, or
+      # nil when the running Ruby does not know +version+, so knows no
+      # later one either.
+      def newer_than(version)
+        Regexp.new("(?!\\p{Age=#{version[/\A\d+\.\d+/]}})\\P{Cn}").freeze
+      rescue RegexpError
+        nil
       end
 
       # Step 1: the base mapping of +c+.

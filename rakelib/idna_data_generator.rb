@@ -49,6 +49,10 @@ class IDNADataGenerator
             BIDI_EN = #{char_class(intersect(bidi_class("EN"), valid))}
             BIDI_ES_CS_ET_ON_BN = #{char_class(intersect(bidi_class("ES", "CS", "ET", "ON", "BN"), valid))}
             BIDI_NSM = #{char_class(intersect(bidi_class("NSM"), valid))}
+
+            # The code points that a Ruby of a later Unicode version knows,
+            # but these values do not cover, or nil.
+            NEWER_THAN_DATA = newer_than(UNICODE_VERSION)
           end
         end
       end

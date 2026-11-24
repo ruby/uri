@@ -145,6 +145,36 @@ class URI::TestWHATWGIDNA < Test::Unit::TestCase
     assert_failure("a" + unknown.chr(Encoding::UTF_8))
   end
 
+  # The Bidi_Class and Joining_Type values come from generated data, so
+  # a code point that Ruby knows but the data does not, on a Ruby whose
+  # Unicode version is newer, is disallowed.
+  def test_newer_than_matches_code_points_assigned_after_a_version
+    newer = IDNA.newer_than("6.0.0")
+    assert_match(newer, "\u{1F600}") # Unicode 6.1
+    assert_no_match(newer, "\u{263A}") # Unicode 1.1
+    assert_no_match(newer, "a")
+    assert_no_match(newer, "\u{378}") # unassigned
+    assert_no_match(newer, "\u{FDD0}") # noncharacter
+    assert_predicate(newer, :frozen?)
+  end
+
+  def test_newer_than_a_version_that_ruby_does_not_know_is_nil
+    assert_nil(IDNA.newer_than("999.0.0"))
+  end
+
+  def test_code_point_newer_than_the_data_is_disallowed
+    assert_separately([], <<~'RUBY')
+      require "uri"
+      idna = URI::WHATWG_Parser::IDNA
+      idna.load_data
+      idna.send(:remove_const, :NEWER_THAN_DATA)
+      idna.const_set(:NEWER_THAN_DATA, idna.newer_than("6.0.0"))
+      assert_nil(idna.to_ascii("a\u{1F600}"))
+      assert_nil(idna.to_ascii("xn--a-jv3s"))
+      assert_equal("xn--a-60p", idna.to_ascii("a\u{263A}"))
+    RUBY
+  end
+
   # --- Normalize -----------------------------------------------------
 
   def test_normalized_to_nfc
