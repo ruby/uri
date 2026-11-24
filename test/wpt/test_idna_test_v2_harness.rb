@@ -95,6 +95,37 @@ class IDNATestV2::TestHarness < Test::Unit::TestCase
     assert_nil(IDNATestV2.expectation(c))
   end
 
+  # U+0378 is unassigned in every Unicode version so far.
+  def test_unknown_to_ruby_for_a_code_point_unassigned_in_ruby
+    assert_true(IDNATestV2.unknown_to_ruby?({ source: "a\u{378}", to_ascii: "xn--a-qib", status: [] }))
+  end
+
+  def test_unknown_to_ruby_decodes_the_ascii_result
+    assert_true(IDNATestV2.unknown_to_ruby?({ source: "xn--a-qib", to_ascii: "xn--a-qib", status: [] }))
+  end
+
+  def test_unknown_to_ruby_for_known_code_points
+    assert_false(IDNATestV2.unknown_to_ruby?({ source: "fa\u00DF.de", to_ascii: "xn--fa-hia.de", status: [] }))
+    assert_false(IDNATestV2.unknown_to_ruby?({ source: "xn--zz", to_ascii: "xn--zz", status: %w[P4] }))
+    assert_false(IDNATestV2.unknown_to_ruby?({ source: nil, to_ascii: nil, status: %w[A3] }))
+  end
+
+  # A noncharacter is unassigned, but every Unicode version knows it.
+  def test_unknown_to_ruby_for_a_noncharacter
+    assert_false(IDNATestV2.unknown_to_ruby?({ source: "\u{FDD0}", to_ascii: "\u{FDD0}", status: %w[V7] }))
+  end
+
+  # The Unicode data of IDNA is the running Ruby's, which does not know
+  # the code points added since its Unicode version.
+  def test_expectation_is_nil_for_a_success_with_a_code_point_unknown_to_ruby
+    assert_nil(IDNATestV2.expectation({ source: "a\u{378}", to_ascii: "xn--a-qib", status: [] }))
+  end
+
+  def test_expectation_keeps_a_failure_with_a_code_point_unknown_to_ruby
+    c = { source: "a\u{378}", to_ascii: "xn--a-qib", status: %w[V7] }
+    assert_equal({ failure: true }, IDNATestV2.expectation(c))
+  end
+
   def test_run_passes
     c = { source: "fa\u00DF.de", to_ascii: "xn--fa-hia.de", status: [] }
     assert_nil(IDNATestV2.run(c, ->(d) { "xn--fa-hia.de" }))

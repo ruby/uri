@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 require 'uri'
+require 'rbconfig'
 require_relative 'wpt_url_test_data'
 
 # Harness for running Unicode's IdnaTestV2.txt, the conformance test of
@@ -21,6 +22,7 @@ module IDNATestV2
 
   ESCAPE = /\\u(\h{4})|\\x\{(\h+)\}/
   SURROGATES = (0xD800..0xDFFF).freeze
+  UNKNOWN_TO_RUBY = /(?!\p{Noncharacter_Code_Point})\p{Cn}/
 
   module_function
 
@@ -93,13 +95,27 @@ module IDNATestV2
   end
 
   # {failure: true}, {value: expected ASCII}, or nil when the case cannot
-  # be checked: it holds a surrogate, or it has only ignored errors and
-  # the file gives no ASCII result for it.
+  # be checked: it holds a surrogate, it has only ignored errors and the
+  # file gives no ASCII result for it, or it succeeds with a code point
+  # that the running Ruby, whose Unicode data IDNA uses, does not know.
   def expectation(test_case)
     return nil if test_case[:source].nil? || test_case[:to_ascii].nil?
     return { failure: true } unless (test_case[:status] - IGNORED_STATUSES).empty?
     return nil unless test_case[:to_ascii].ascii_only?
+    return nil if unknown_to_ruby?(test_case)
     { value: test_case[:to_ascii] }
+  end
+
+  # Whether +test_case+ holds a code point that is unassigned in the
+  # Unicode version of the running Ruby, in its source or in its ASCII
+  # result decoded. Noncharacters are unassigned in every version.
+  def unknown_to_ruby?(test_case)
+    [test_case[:source], test_case[:to_ascii]].compact.any? do |domain|
+      domain.split(".", -1).any? do |label|
+        decoded = URI::WHATWG_Parser::Punycode.decode(label[4..-1]) if label.start_with?("xn--") && label.ascii_only?
+        [label, decoded].compact.any? { |s| s.match?(UNKNOWN_TO_RUBY) }
+      end
+    end
   end
 
   # Runs +test_case+ with +to_ascii+, a callable that returns the ASCII
