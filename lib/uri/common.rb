@@ -51,7 +51,12 @@ module URI
   #
   # IDNA uses the Unicode data of the running Ruby, as String#upcase
   # does, so a domain with a character added in a later version of
-  # Unicode than RbConfig::CONFIG["UNICODE_VERSION"] is invalid.
+  # Unicode than RbConfig::CONFIG["UNICODE_VERSION"], or than that of the
+  # data bundled for IDNA, is invalid.
+  #
+  # As ftp, mailto and ldap URLs become URI::Generic, code that relies on
+  # URI::FTP, URI::MailTo or URI::LDAP, such as URI.open of open-uri for
+  # ftp, does not work for them.
   #
   # The setters of a URI it builds follow the setters of the URL
   # Standard, and raise URI::InvalidComponentError for a value that the

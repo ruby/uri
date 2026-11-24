@@ -46,7 +46,7 @@ uri.to_s      #=> "http://foo.com/posts?id=30&limit=5#time=1305298413"
 
 ### WHATWG URL Standard
 
-The default parser follows RFC 3986. `URI::WHATWG_PARSER` parses URLs as web browsers do, following the [WHATWG URL Standard](https://url.spec.whatwg.org/), including domain to ASCII (IDNA, [UTS #46](https://www.unicode.org/reports/tr46/)) for non-ASCII domains. IDNA uses the Unicode data of the running Ruby, so a domain with a character added in a later version of Unicode than `RbConfig::CONFIG["UNICODE_VERSION"]` is invalid:
+The default parser follows RFC 3986. `URI::WHATWG_PARSER` parses URLs as web browsers do, following the [WHATWG URL Standard](https://url.spec.whatwg.org/), including domain to ASCII (IDNA, [UTS #46](https://www.unicode.org/reports/tr46/)) for non-ASCII domains. IDNA uses the Unicode data of the running Ruby, so a domain with a character added in a later version of Unicode than `RbConfig::CONFIG["UNICODE_VERSION"]`, or than that of the data bundled for IDNA (18.0.0), is invalid:
 
 ```ruby
 URI::WHATWG_PARSER.parse("HTTP://EXAMPLE.com:80/a/../b c")
@@ -69,6 +69,8 @@ URI("http://ＥＸＡＭＰＬＥ.com/")
 #=> #<URI::HTTP http://example.com/>
 URI.parser = URI::RFC3986_PARSER
 ```
+
+Only http, https, ws, wss and file URLs become instances of their scheme's class. Other schemes, ftp, mailto and ldap among them, become `URI::Generic`, since `URI::FTP`, `URI::MailTo` and `URI::LDAP` interpret their components by their own RFCs. With `URI.parser = URI::WHATWG_PARSER`, code that relies on those classes no longer works for such URLs: for example, `URI.open("ftp://...")` of open-uri, which opens a `URI::FTP` only, tries to open a local file instead and raises `Errno::ENOENT`.
 
 The setters of a URI built by `URI::WHATWG_PARSER` follow the setters of the URL Standard. A value that the URL Standard ignores raises `URI::InvalidComponentError`:
 
