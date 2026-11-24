@@ -49,6 +49,10 @@ module URI
   #   URI::WHATWG_PARSER.parse("http://\u{65E5}\u{672C}\u{8A9E}.jp/").host
   #   # => "xn--wgv71a119e.jp"
   #
+  # IDNA uses the Unicode data of the running Ruby, as String#upcase
+  # does, so a domain with a character added in a later version of
+  # Unicode than RbConfig::CONFIG["UNICODE_VERSION"] is invalid.
+  #
   # The setters of a URI it builds follow the setters of the URL
   # Standard, and raise URI::InvalidComponentError for a value that the
   # URL Standard ignores:
