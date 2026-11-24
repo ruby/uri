@@ -145,6 +145,29 @@ class URI::TestWHATWGIDNA < Test::Unit::TestCase
     assert_failure("a" + unknown.chr(Encoding::UTF_8))
   end
 
+  # NFKC_Casefold of one code point, computed with String#unicode_normalize
+  # instead of URI::WHATWG_Parser::NFC.
+  def reference_nfkc_casefold(s)
+    loop do
+      t = s.unicode_normalize(:nfkc).downcase(:fold).unicode_normalize(:nfkc).gsub(/\p{Default_Ignorable_Code_Point}/, "")
+      return t if t == s
+      s = t
+    end
+  end
+
+  # Every code point with a decomposition or a combining class, and a
+  # sample of the others.
+  def test_nfkc_casefold
+    require "unicode_normalize/tables"
+    IDNA.load_data
+    chars = UnicodeNormalize::KOMPATIBLE_TABLE.keys + UnicodeNormalize::DECOMPOSITION_TABLE.keys +
+            UnicodeNormalize::CLASS_TABLE.keys
+    chars += (0x80..0x10FFFF).step(97).reject { |c| (0xD800..0xDFFF).cover?(c) }.map { |c| c.chr(Encoding::UTF_8) }
+    chars += ["A", "\u{DF}", "\u{1E9E}", "\u{130}", "\u{FB03}", "\u{AD}", "\u{AC00}", "\u{2126}", "\u{1F600}"]
+    wrong = chars.uniq.reject { |c| IDNA.nfkc_casefold(c) == reference_nfkc_casefold(c) }
+    assert_equal([], wrong.map(&:dump))
+  end
+
   # The Bidi_Class and Joining_Type values come from generated data, so
   # a code point that Ruby knows but the data does not, on a Ruby whose
   # Unicode version is newer, is disallowed.

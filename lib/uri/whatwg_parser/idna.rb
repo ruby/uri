@@ -27,6 +27,7 @@ module URI
       # Every code point the IDNA Mapping Table leaves unchanged is
       # matched out; ASCII code points other than A-Z are among them.
       MAPPING_CANDIDATE = /[A-Z]|[^\x00-\x7F]/
+      UPPERCASE_ASCII = /\A[A-Z]\z/
 
       # The Bidi Rule (RFC 5893 section 2), over a label whose code points
       # are replaced by their Bidi_Class: L, R (R or AL), A (AN), E (EN),
@@ -81,11 +82,17 @@ module URI
         return nil unless domain.valid_encoding?
         load_data
 
-        mapped = domain.gsub(MAPPING_CANDIDATE) { |c| map(c) }
+        # Deriving the status of a code point takes several
+        # normalizations, so each one is derived once per domain.
+        statuses = {}
+        mapped = domain.gsub(MAPPING_CANDIDATE) do |c|
+          st = status(c, statuses)
+          st.is_a?(String) ? st : c
+        end
         labels = NFC.normalize(mapped).split(LABEL_SEPARATOR, -1)
         labels.map! do |label|
           label = decode_label(label) if label.start_with?(ACE_PREFIX)
-          return nil unless label && valid_label?(label)
+          return nil unless label && valid_label?(label, statuses)
           label
         end
         return nil if bidi_domain?(labels) && !labels.all? { |label| satisfies_bidi_rule?(label) }
@@ -97,32 +104,27 @@ module URI
         NFC.load_tables
       end
 
-      # The character +c+ maps to in the IDNA Mapping Table: its mapping if
-      # its status is mapped or ignored, otherwise +c+ itself.
-      def map(c)
-        mapping_of(c) || c
+      # Steps 6 and 7 of the Mapping Table Derivation for +c+: true if its
+      # status is valid or deviation, its mapping (an empty string if it
+      # is ignored) if it is mapped, or false if it is disallowed.
+      # +statuses+ caches the result by code point.
+      def status(c, statuses = {})
+        statuses.fetch(c) { statuses[c] = derive_status(c, statuses) }
       end
 
-      # Steps 6 and 7 for +c+: its mapping if its status is mapped or
-      # ignored (an empty string), or nil.
-      def mapping_of(c)
-        return nil if DEVIATIONS.include?(c) || c.match?(EXCLUDED) || unknown?(c)
-        mapping = base_mapping(c)
-        return nil if mapping == c
-        return nil unless LABEL_SEPARATORS.include?(c) || mapping.each_char.all? { |m| base_valid?(m) }
-        # Step 7: a mapping that is not wholly valid is disallowed, such
-        # as the U+3002 of U+FE12, which is mapped itself. A mapping is
-        # stable under NFKC_Casefold, so this needs no repeating.
-        return nil unless mapping.each_char.all? { |m| m == LABEL_SEPARATOR || valid_char?(m) }
-        mapping
-      end
-
-      # Step 6 for +c+: whether its status is valid or deviation.
-      def valid_char?(c)
+      def derive_status(c, statuses)
+        return c.downcase if UPPERCASE_ASCII.match?(c)
         return c != LABEL_SEPARATOR if c.ord < 0x80
         return true if DEVIATIONS.include?(c)
         return false if c.match?(EXCLUDED) || unknown?(c)
-        base_mapping(c) == c && base_valid?(c)
+        mapping = base_mapping(c)
+        return base_valid?(c) if mapping == c
+        return false unless LABEL_SEPARATORS.include?(c) || mapping.each_char.all? { |m| base_valid?(m) }
+        # Step 7: a mapping that is not wholly valid is disallowed, such
+        # as the U+3002 of U+FE12, which is mapped itself. A mapping is
+        # stable under NFKC_Casefold, so this needs no repeating.
+        return false unless mapping.each_char.all? { |m| m == LABEL_SEPARATOR || status(m, statuses) == true }
+        mapping
       end
 
       # Whether +c+ is unassigned in the Unicode version of the running
@@ -160,11 +162,22 @@ module URI
       # NFKC_Casefold: the closure of NFKC(toCasefold(NFKC(X))) with the
       # default ignorable code points removed.
       def nfkc_casefold(s)
+        # Most code points have no decomposition, which NFKC keeps as they
+        # are, and fold to themselves.
+        return s if s.size == 1 && stable_code_point?(s)
         loop do
           t = NFC.normalize_kc(NFC.normalize_kc(s).downcase(:fold)).gsub(DEFAULT_IGNORABLE, "")
           return t if t == s
           s = t
         end
+      end
+
+      # Whether NFKC and case folding leave the code point +c+ unchanged,
+      # and it is not default ignorable, so NFKC_Casefold does.
+      def stable_code_point?(c)
+        code_point = c.ord
+        !NFC::DECOMPOSITION.key?(code_point) && !NFC::COMPATIBILITY_DECOMPOSITION.key?(code_point) &&
+          c.downcase(:fold) == c && !c.match?(DEFAULT_IGNORABLE)
       end
 
       # Processing step 4 for a label that starts with "xn--". Returns the
@@ -180,12 +193,14 @@ module URI
       # Validity Criteria (UTS #46 section 4.1) for Nontransitional
       # Processing, except the Bidi Rule, which needs the whole domain.
       # Criterion 1 (NFC) holds for a label that was not decoded.
-      def valid_label?(label)
+      #
+      # +statuses+ caches #status by code point.
+      def valid_label?(label, statuses = {})
         return true if label.empty?
         !label.start_with?(ACE_PREFIX) &&
           !label.include?(LABEL_SEPARATOR) &&
           !MARK.match?(label[0]) &&
-          label.each_char.all? { |c| valid_char?(c) } &&
+          label.each_char.all? { |c| status(c, statuses) == true } &&
           valid_joiners?(label)
       end
 
