@@ -1,5 +1,8 @@
 # frozen_string_literal: true
-require "unicode_normalize/tables"
+# The tables come with the methods of UnicodeNormalize: TruffleRuby loads
+# those for String#unicode_normalize only while UnicodeNormalize is
+# undefined.
+require "unicode_normalize/normalize"
 
 module URI
   class WHATWG_Parser

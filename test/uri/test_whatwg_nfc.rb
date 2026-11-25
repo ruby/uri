@@ -171,6 +171,18 @@ class URI::TestWHATWGNFC < Test::Unit::TestCase
     assert_equal([[], []], [nfc.map(&:dump), nfkc.map(&:dump)])
   end
 
+  # TruffleRuby loads the methods of UnicodeNormalize for
+  # String#unicode_normalize only when the module is not defined yet.
+  def test_string_unicode_normalize_works_after_loading_the_tables
+    assert_separately([], <<~'RUBY')
+      require "uri"
+      URI::WHATWG_Parser::NFC.load_tables
+      assert_equal("\u{E9}", "e\u{301}".unicode_normalize)
+      assert_equal("ffi", "\u{FB03}".unicode_normalize(:nfkc))
+      assert_predicate("\u{E9}", :unicode_normalized?)
+    RUBY
+  end
+
   def test_works_in_a_ractor
     omit "Ractor is not available" unless defined?(Ractor)
     assert_separately(%w[-W0], <<~'RUBY')
