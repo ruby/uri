@@ -123,7 +123,7 @@ class URI::TestParser < Test::Unit::TestCase
   end
 
   def test_rfc2396_regexp_linear_time
-    omit "Regexp.linear_time? is not available" unless Regexp.respond_to?(:linear_time?)
+    omit "requires the match cache of CRuby 3.3+" unless RUBY_ENGINE == "ruby" && RUBY_VERSION >= "3.3"
     URI::RFC2396_PARSER.regexp.each do |name, re|
       assert Regexp.linear_time?(re), "regexp[#{name.inspect}] should be linear time"
     end
