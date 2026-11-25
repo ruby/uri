@@ -45,6 +45,7 @@ module URI
       SHARP_S = "\u{DF}"
       BIDI_CONTROL = /\p{Bidi_Control}/
       DEFAULT_IGNORABLE = /\p{Default_Ignorable_Code_Point}/
+      CHEROKEE = /\p{Cherokee}/
       OTHER_OR_SEPARATOR = /[\p{C}\p{Z}]/
       IDS_OPERATOR =
         begin
@@ -166,7 +167,7 @@ module URI
         # are, and fold to themselves.
         return s if s.size == 1 && stable_code_point?(s)
         loop do
-          t = NFC.normalize_kc(NFC.normalize_kc(s).downcase(:fold)).gsub(DEFAULT_IGNORABLE, "")
+          t = NFC.normalize_kc(case_fold(NFC.normalize_kc(s))).gsub(DEFAULT_IGNORABLE, "")
           return t if t == s
           s = t
         end
@@ -177,7 +178,16 @@ module URI
       def stable_code_point?(c)
         code_point = c.ord
         !NFC::DECOMPOSITION.key?(code_point) && !NFC::COMPATIBILITY_DECOMPOSITION.key?(code_point) &&
-          c.downcase(:fold) == c && !c.match?(DEFAULT_IGNORABLE)
+          case_fold(c) == c && !c.match?(DEFAULT_IGNORABLE)
+      end
+
+      # toCasefold, the full case folding. String#downcase(:fold) of
+      # TruffleRuby folds some code points only partly, such as U+1E9E to
+      # U+00DF, and Cherokee letters to lowercase, which then fold back to
+      # uppercase. Folding twice completes the former, and Cherokee folds to
+      # uppercase.
+      def case_fold(s)
+        s.downcase(:fold).downcase(:fold).gsub(CHEROKEE, &:upcase)
       end
 
       # Processing step 4 for a label that starts with "xn--". Returns the

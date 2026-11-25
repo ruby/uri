@@ -94,6 +94,37 @@ class URI::TestWHATWGIDNA < Test::Unit::TestCase
     assert_to_ascii("ab", "a\u{E0100}b")
   end
 
+  # The full case folding, including the code points that
+  # String#downcase(:fold) of TruffleRuby folds only partly or to
+  # lowercase.
+  def test_case_fold
+    assert_equal("", IDNA.case_fold(""))
+    assert_equal("a1-", IDNA.case_fold("A1-"))
+    assert_equal("ss", IDNA.case_fold("\u{DF}"))
+    assert_equal("ss", IDNA.case_fold("\u{1E9E}"))
+    assert_equal("i\u{307}", IDNA.case_fold("\u{130}"))
+    assert_equal("\u{1F00}\u{3B9}", IDNA.case_fold("\u{1F88}"))
+    assert_equal("\u{1F00}\u{3B9}", IDNA.case_fold("\u{1F80}"))
+    assert_equal("\u{3B1}\u{3B9}", IDNA.case_fold("\u{1FBC}"))
+    assert_equal("\u{3C9}\u{3B9}", IDNA.case_fold("\u{1FFC}"))
+    # Cherokee folds to uppercase, from both ends of each range.
+    assert_equal("\u{13A0}\u{13F5}", IDNA.case_fold("\u{13A0}\u{13F5}"))
+    assert_equal("\u{13A0}\u{13AF}", IDNA.case_fold("\u{AB70}\u{AB7F}"))
+    assert_equal("\u{13F0}\u{13F5}", IDNA.case_fold("\u{13F8}\u{13FD}"))
+    assert_equal("a\u{13A0}ss", IDNA.case_fold("A\u{AB70}\u{1E9E}"))
+  end
+
+  def test_nfkc_casefold_of_cherokee
+    assert_equal("\u{13F1}", IDNA.nfkc_casefold("\u{13F1}"))
+    assert_equal("\u{13F1}", IDNA.nfkc_casefold("\u{13F9}"))
+    assert_equal("\u{13A0}", IDNA.nfkc_casefold("\u{AB70}"))
+    assert_to_ascii("xn--hce", "\u{13F1}")
+    assert_to_ascii("xn--hce", "\u{13F9}")
+    assert_to_ascii("xn--58d", "\u{AB70}")
+    assert_to_ascii("xn--uxa970l", "\u{1F88}")
+    assert_to_ascii("xn--mxaq", "\u{1FBC}")
+  end
+
   # Step 2: the base valid set has the ASCII code points but ".", and no
   # other control, format, private use, unassigned or separator code
   # point, nor IDS operator.
@@ -149,7 +180,7 @@ class URI::TestWHATWGIDNA < Test::Unit::TestCase
   # instead of URI::WHATWG_Parser::NFC.
   def reference_nfkc_casefold(s)
     loop do
-      t = s.unicode_normalize(:nfkc).downcase(:fold).unicode_normalize(:nfkc).gsub(/\p{Default_Ignorable_Code_Point}/, "")
+      t = IDNA.case_fold(s.unicode_normalize(:nfkc)).unicode_normalize(:nfkc).gsub(/\p{Default_Ignorable_Code_Point}/, "")
       return t if t == s
       s = t
     end
