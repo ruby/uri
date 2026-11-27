@@ -114,6 +114,15 @@ class URI::TestCommon < Test::Unit::TestCase
     assert_equal(DEFAULT_SCHEMES, URI.scheme_list.keys.sort)
   end
 
+  def test_register_scheme_overrides_bundled_scheme
+    http = Class.new(URI::HTTP)
+    EnvUtil.suppress_warning { URI.register_scheme 'HTTP', http }
+    assert_equal http, URI.parse('http://localhost').class
+    assert_equal http, URI.for('http', nil, 'localhost', nil, nil, '/', nil, nil, nil).class
+  ensure
+    EnvUtil.suppress_warning { URI.register_scheme 'HTTP', URI::HTTP }
+  end
+
   def test_register_scheme_with_symbols
     # Valid schemes from https://www.iana.org/assignments/uri-schemes/uri-schemes.xhtml
     list = []

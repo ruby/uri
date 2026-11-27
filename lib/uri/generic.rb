@@ -507,7 +507,7 @@ module URI
     # See also URI::Generic.userinfo=.
     #
     def set_userinfo(user, password = nil)
-      unless password
+      if user && !password
         user, password = split_userinfo(user)
       end
       @user     = user
