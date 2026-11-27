@@ -855,8 +855,7 @@ module URI
       return @query = nil unless v
       raise InvalidURIError, "query conflicts with opaque" if @opaque
 
-      x = v.to_str
-      v = x.dup if x.equal? v
+      v = v.to_str.dup
       v.encode!(Encoding::UTF_8) rescue nil
       v.delete!("\t\r\n")
       v.force_encoding(Encoding::ASCII_8BIT)
@@ -944,8 +943,7 @@ module URI
     def fragment=(v)
       return @fragment = nil unless v
 
-      x = v.to_str
-      v = x.dup if x.equal? v
+      v = v.to_str.dup
       v.encode!(Encoding::UTF_8) rescue nil
       v.delete!("\t\r\n")
       v.force_encoding(Encoding::ASCII_8BIT)
