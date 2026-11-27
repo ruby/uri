@@ -1564,18 +1564,22 @@ module URI
         return nil
       end
 
+      name = 'no_proxy'
+      no_proxy = env[name] || env[name.upcase]
       if self.hostname
+        if no_proxy && !URI::Generic.use_proxy?(self.hostname, nil, self.port, no_proxy)
+          return nil
+        end
+
         begin
           addr = IPSocket.getaddress(self.hostname)
           return nil if /\A127\.|\A::1\z/ =~ addr
         rescue SocketError
         end
+
+        return nil if no_proxy && !URI::Generic.use_proxy?(self.hostname, addr, self.port, no_proxy)
       end
 
-      name = 'no_proxy'
-      if no_proxy = env[name] || env[name.upcase]
-        return nil unless URI::Generic.use_proxy?(self.hostname, addr, self.port, no_proxy)
-      end
       URI.parse(proxy_uri)
     end
 
