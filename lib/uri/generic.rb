@@ -1226,7 +1226,7 @@ module URI
           "relative URI: #{oth}"
       end
 
-      if self.scheme != oth.scheme
+      if self.scheme != oth.scheme || self.hierarchical? != oth.hierarchical?
         return self, self.dup
       end
       rel = URI::Generic.new(nil, # it is relative URI
