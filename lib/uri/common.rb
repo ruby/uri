@@ -11,6 +11,7 @@
 
 require_relative "rfc2396_parser"
 require_relative "rfc3986_parser"
+require_relative "whatwg_parser"
 
 module URI
   # The default parser instance for RFC 2396.
@@ -20,6 +21,62 @@ module URI
   # The default parser instance for RFC 3986.
   RFC3986_PARSER = RFC3986_Parser.new
   Ractor.make_shareable(RFC3986_PARSER) if defined?(Ractor)
+
+  # The parser instance for the WHATWG URL Standard
+  # (https://url.spec.whatwg.org/), which browsers follow. It is not the
+  # default; use it directly, or switch to it with
+  # <tt>URI.parser = URI::WHATWG_PARSER</tt>.
+  #
+  #   URI::WHATWG_PARSER.parse("HTTP://EXAMPLE.com:80/a/../b c")
+  #   # => #<URI::HTTP http://example.com/b%20c>
+  #   URI::WHATWG_PARSER.parse("http://0x7f.1/")
+  #   # => #<URI::HTTP http://127.0.0.1/>
+  #
+  # A relative reference is only meaningful against a base URL, so it is
+  # resolved with #join or URI::Generic#merge rather than parsed alone:
+  #
+  #   URI::WHATWG_PARSER.join("http://example.com/a/b", "../c")
+  #   # => #<URI::HTTP http://example.com/c>
+  #   URI::WHATWG_PARSER.parse("http://example.com/a") + "b"
+  #   # => #<URI::HTTP http://example.com/b>
+  #   URI::WHATWG_PARSER.parse("/relative")
+  #   # raises URI::InvalidURIError
+  #
+  # Only http, https, ws, wss and file URLs become instances of their
+  # scheme's class; other schemes become URI::Generic. A non-ASCII domain
+  # is converted to ASCII (IDNA, UTS #46):
+  #
+  #   URI::WHATWG_PARSER.parse("http://\u{65E5}\u{672C}\u{8A9E}.jp/").host
+  #   # => "xn--wgv71a119e.jp"
+  #
+  # IDNA uses the Unicode data of the running Ruby, as String#upcase
+  # does, so a domain with a character added in a later version of
+  # Unicode than RbConfig::CONFIG["UNICODE_VERSION"], or than that of the
+  # data bundled for IDNA, is invalid.
+  #
+  # As ftp, mailto and ldap URLs become URI::Generic, code that relies on
+  # URI::FTP, URI::MailTo or URI::LDAP, such as URI.open of open-uri for
+  # ftp, does not work for them.
+  #
+  # The setters of a URI it builds follow the setters of the URL
+  # Standard, and raise URI::InvalidComponentError for a value that the
+  # URL Standard ignores:
+  #
+  #   uri = URI::WHATWG_PARSER.parse("http://example.com/")
+  #   uri.port = "8080abc"
+  #   uri.to_s
+  #   # => "http://example.com:8080/"
+  #
+  # As for any URI, scheme= does not change the class of the object.
+  # Parse the URI again to get the class of its new scheme:
+  #
+  #   uri.scheme = "https"
+  #   uri
+  #   # => #<URI::HTTP https://example.com:8080/>
+  #   URI::WHATWG_PARSER.parse(uri.to_s)
+  #   # => #<URI::HTTPS https://example.com:8080/>
+  WHATWG_PARSER = WHATWG_Parser.new
+  Ractor.make_shareable(WHATWG_PARSER) if defined?(Ractor)
 
   # The default parser instance.
   DEFAULT_PARSER = RFC3986_PARSER

@@ -867,6 +867,24 @@ module URI
     end
 
     #
+    # == Args
+    #
+    # +v+::
+    #    String
+    #
+    # == Description
+    #
+    # Protected setter for the query component +v+, without the escaping
+    # done by #query=.
+    #
+    # See also URI::Generic.query=.
+    #
+    def set_query(v)
+      @query = v
+    end
+    protected :set_query
+
+    #
     # Checks the opaque +v+ component for RFC2396 compliance and
     # against the +parser+ Regexp for :OPAQUE.
     #
@@ -1215,6 +1233,7 @@ module URI
     # :startdoc:
 
     # :stopdoc:
+
     def route_from0(oth)
       oth = parser.__send__(:convert_to_uri, oth)
       if self.relative?
@@ -1602,3 +1621,5 @@ module URI
     end
   end
 end
+
+require_relative "whatwg_parser/setters"
