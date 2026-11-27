@@ -7,6 +7,19 @@ class URI::TestParser < Test::Unit::TestCase
     uri.class.component.collect {|c| uri.send(c)}
   end
 
+
+  def test_rfc2396_parser_preserves_options
+    escaped = "%[0-9a-fA-F]{2}"
+    options = {ESCAPED: escaped}
+
+    parser = URI::RFC2396_Parser.new(options)
+
+    assert_equal({ESCAPED: escaped}, options)
+    assert_equal(false, escaped.frozen?)
+    assert_equal("http://example.test/a%20b", parser.parse("http://example.test/a%20b").to_s)
+    assert_nothing_raised { URI::RFC2396_Parser.new(options.freeze) }
+  end
+
   def test_inspect
     assert_match(/URI::RFC2396_Parser/, URI::RFC2396_Parser.new.inspect)
     assert_match(/URI::RFC3986_Parser/, URI::Parser.new.inspect)
