@@ -266,18 +266,18 @@ module URI
     #   # => "To: ruby-list@ruby-lang.org\nSubject: subscribe\nCc: myaddr\n\n\n"
     #
     def to_mailtext
-      to = URI.decode_www_form_component(@to)
+      to = URI.decode_uri_component(@to)
       head = ''
       body = ''
       @headers.each do |x|
         case x[0]
         when 'body'
-          body = URI.decode_www_form_component(x[1])
+          body = URI.decode_uri_component(x[1])
         when 'to'
-          to << ', ' + URI.decode_www_form_component(x[1])
+          to << ', ' + URI.decode_uri_component(x[1])
         else
-          head << URI.decode_www_form_component(x[0]).capitalize + ': ' +
-            URI.decode_www_form_component(x[1])  + "\n"
+          head << URI.decode_uri_component(x[0]).capitalize + ': ' +
+            URI.decode_uri_component(x[1])  + "\n"
         end
       end
 
