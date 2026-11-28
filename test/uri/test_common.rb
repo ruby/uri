@@ -210,10 +210,17 @@ class URI::TestCommon < Test::Unit::TestCase
                  URI.decode_www_form_component("%A1%A2", "EUC-JP"))
     assert_equal("\xE3\x81\x82\xE3\x81\x82".force_encoding("UTF-8"),
                  URI.decode_www_form_component("\xE3\x81\x82%E3%81%82".force_encoding("UTF-8")))
+    assert_equal("\u3042\uFFFD", URI.decode_www_form_component("%e3%81%82%Ef%bF%Bd"))
+    assert_equal("\xFF".force_encoding("UTF-8"), URI.decode_www_form_component("%FF".b))
+    assert_equal("\x82\x33\xE7\x34 ".force_encoding("UTF-8"),
+                 URI.decode_www_form_component("\x82\x33\xE7\x34+".force_encoding("GB18030")))
+    assert_equal("", URI.decode_www_form_component(""))
+    assert_instance_of(String, URI.decode_www_form_component(Class.new(String).new("a")))
 
     assert_raise(ArgumentError){URI.decode_www_form_component("%")}
     assert_raise(ArgumentError){URI.decode_www_form_component("%a")}
     assert_raise(ArgumentError){URI.decode_www_form_component("x%a_")}
+    assert_raise(ArgumentError){URI.decode_www_form_component("%zz")}
     assert_nothing_raised(ArgumentError){URI.decode_www_form_component("x"*(1024*1024))}
   end
 
@@ -262,10 +269,17 @@ class URI::TestCommon < Test::Unit::TestCase
                  URI.decode_uri_component("%A1%A2", "EUC-JP"))
     assert_equal("\xE3\x81\x82\xE3\x81\x82".force_encoding("UTF-8"),
                  URI.decode_uri_component("\xE3\x81\x82%E3%81%82".force_encoding("UTF-8")))
+    assert_equal("\u3042\uFFFD", URI.decode_uri_component("%e3%81%82%Ef%bF%Bd"))
+    assert_equal("\xFF".force_encoding("UTF-8"), URI.decode_uri_component("%FF".b))
+    assert_equal("\x82\x33\xE7\x34+".force_encoding("UTF-8"),
+                 URI.decode_uri_component("\x82\x33\xE7\x34+".force_encoding("GB18030")))
+    assert_equal("", URI.decode_uri_component(""))
+    assert_instance_of(String, URI.decode_uri_component(Class.new(String).new("a")))
 
     assert_raise(ArgumentError){URI.decode_uri_component("%")}
     assert_raise(ArgumentError){URI.decode_uri_component("%a")}
     assert_raise(ArgumentError){URI.decode_uri_component("x%a_")}
+    assert_raise(ArgumentError){URI.decode_uri_component("%zz")}
     assert_nothing_raised(ArgumentError){URI.decode_uri_component("x"*(1024*1024))}
   end
 
